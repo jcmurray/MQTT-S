@@ -1,8 +1,34 @@
 /*
  * MqttsClientApplication.h
+*               Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
  *
- *  Created on: 2013/05/27
- *      Author: Tomoaki Yamaguchi
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *     Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * You should have received a copy of the GNU General Public License
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ *  Created on: 2013/06/15
+ *      Author: Tomoaki YAMAGUCHI
+ *     Version: 0.4.0
  */
 
 #ifndef MQTTSCLIENTAPPLICATION_H_
@@ -23,7 +49,7 @@
 #define MQ_WAKEUP  0
 #define MQ_SLEEP   1
 #define MQ_ON      1
-#define MQ_OFF     2
+#define MQ_OFF     0
 
 #define MQ_WDT_ERR   (B01100000)  // Error Indication time
 //#define MQ_WDT_TIME  (B01000110)  // 1 Sec
@@ -36,12 +62,12 @@
 #define MQ_WDT_TIME_SEC   4         // 4 Sec  
  
 //#define MQ_WDT_TIME (B01100001)   // 8 Sec
-//#define MQ_WDT_TIME_SEC   8       // 8 Sec
+//#define MQ_WDT_TIME_SEC   9       // 8 Sec
 
-#define MQ_WAKEUP_COUNT   5
+#define MQ_WAKEUP_COUNT   8
 
 typedef struct {
-  uint16_t cnt;
+	uint16_t cnt;
 	uint16_t cntReg;
 	bool flg;
 	void (*callback)(void);;
@@ -55,9 +81,7 @@ enum MQ_INT_STATUS{ WAIT, INT0_LL, INT0_WAIT_HL, INT_WDT};
 class WdTimer {
 public:
 	WdTimer(void);
-	WdTimer(uint8_t wdtTime);
-	//void setup(uint8_t wdtTime);
-	uint8_t registerCallback(uint16_t milisec, void (*proc)());
+	uint8_t registerCallback(double sec, void (*proc)());
 	void start(void);
 	void stop(void);
 	void timeUp(void);
@@ -66,7 +90,7 @@ private:
 	MQ_TimerTbl *_timerTbls;
 	uint8_t _timerCnt;
 	uint8_t _wdtTime;
-	uint16_t _resolutionMilisec;
+	//uint16_t _resolutionMilisec;
 };
 
 /*======================================
@@ -77,16 +101,36 @@ public:
 	MqttsClientApplication();
 	~MqttsClientApplication();
 	void registerInt0Callback(void (*callback)());
-	void registerWdtCallback(uint16_t milisec, void (*callback)());
+	void registerWdtCallback(double sec, void (*callback)());
 	void setup(const char* clientId, uint16_t baudrate);
-	void checkInterupt();
+	void begin(long baudrate);
+	void init(const char* clientNameId);
+	void setKeepAlive(uint16_t msec);
+	void setQos(uint8_t level);
+	void setRetain(bool retain);
+	void setClean(bool clean);
+	void setClientId(MQString* id);
 	void sleepApp();
 	void blinkIndicator(int msec);
-    void setInterrupt();
-	void wdtHandler();
-	void interruptHandler();
 	void sleepXB();
 	void wakeupXB();
+	
+	int connect();
+	int registerTopic(MQString* topic);
+	int publish(MQString* topic, const char* data, int dataLength);
+	int publish(uint16_t predefinedId, const char* data, int dataLength);
+	int subscribe(MQString* topic, TopicCallback callback);
+	int subscribe(uint16_t predefinedId, TopicCallback callback);
+	int unsubscribe(MQString* topic);
+	int disconnect(uint16_t duration);
+
+	void startWdt();
+	void stopWdt();
+	void run();
+	void runConnect();
+	void runLoop();
+
+private:
 	uint8_t getMsgRequestType();
 	uint8_t getMsgRequestStatus();
 	uint8_t getMsgRequestCount();
@@ -94,23 +138,11 @@ public:
 	int  execMsgRequest();
 	bool isGwConnected();
 	void setMsgRequestStatus(uint8_t stat);
-
-	int connect();
-	int registerTopic(MQString* topic);
-	int publish(MQString* topic, const char* data, int dataLength);
-	int subscribe(MQString* topic, uint8_t type, TopicCallback callback);
-	int unsubscribe(MQString* topic);
-	int disconnect(uint16_t duration);
-
-	void setKeepAlive(uint16_t msec);
-	void setQos(uint8_t level);
-	void setRetain(bool retain);
-	void setClean(bool clean);
-	void setClientId(MQString* id);
-	void startWdt();
-	void stopWdt();
-
-private:
+	void checkInterupt();
+	void wdtHandler();
+	void interruptHandler();
+    void setInterrupt();
+	
 	MqttsClient _mqtts;
 	bool _txFlag;
 	uint8_t _wdtCnt;
