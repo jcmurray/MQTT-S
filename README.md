@@ -1,7 +1,7 @@
 MQTT-S
 ======
-
-MQTT-S Client via XBee  (running on linux and Arduino)
+  MQTT-S Client over XBee  (running on linux and Arduino)  
+  MQTT-S Dummy Gateway for debug  
 
 Supported functions
 -------------------
@@ -14,26 +14,24 @@ Supported functions
 *  CONNACK, REGACK, SUBACK, PUBACK, UNSUBACK
   
 Module descriptions
--------------------
-  
+-------------------  
 ####1) MqttsClientApp.cpp  
 Client application sample which is used for debugging.
 
 ####2) MqttsClient.cpp
-  MQTT-S Client Engine class. This Class is used by  a application.
- 
+  MQTT-S Client Engine class. This Class is used by  a application.  
   Usages are shown as follows.
   
-    MqttsClient mqtts = MqttsClient();  // declare the client object
-    mqtts.begin(argv[1], B9600);  // argv[1] is a serial device for XBee. ex) /dev/ttyUSB0 
-    mqtts.init("Node-02");  // Get XBee's address64, short address and set XBee Node ID, 
-    mqtts.setQos(1);  // set QOS level.  0 or 1
-    mqtts.setWillTopic(willtopic);  // set WILLTOPIC.   
-    mqtts.setWillMessage(willmsg);  // set WILLMSG  those are sent automatically. 
-    mqtts.setKeepAlive(60000);   // PINGREQ interval time
-    mqtts.connect();   // Before CONNECT, SEARCHGW is sent automatically, if the gateway is lost.
-    mqtts.subscribe(topic, callback); // Execute the callback, when the subscribed topic's data is published.
-    mqtts.registerTopic(topic);  // Register topic and aquire a Topic ID 
+    MqttsClient mqtts = MqttsClient();  // Declare the client object
+    mqtts.begin(argv[1], B9600);        // argv[1] is a serial device for XBee. ex) /dev/ttyUSB0 
+    mqtts.init("Node-02");              // Get XBee's address64, short address and set XBee Node ID, 
+    mqtts.setQos(1);                    // set QOS level.  0 or 1
+    mqtts.setWillTopic(willtopic);      // set WILLTOPIC.   
+    mqtts.setWillMessage(willmsg);      // set WILLMSG  those are sent automatically. 
+    mqtts.setKeepAlive(60000);          // PINGREQ interval time
+    mqtts.connect();                    // Before CONNECT, SEARCHGW is sent automatically, if the gateway is lost.
+    mqtts.subscribe(topic, callback);   // Execute the callback, when the subscribed topic's data is published.
+    mqtts.registerTopic(topic);         // Register topic and aquire a Topic ID 
     mqtts.publish(topic, payload, payload_length); // publish the data, topic is converted into ID automatically.
     mqtts.unsubscribe(topic);  
     mqtts.disconnect();
@@ -77,7 +75,7 @@ XBee configuratios
   If you set D6 to 1, uncomment a line //#define XBEE_FLOWCTL_CRTSCTS in Mqtts_Defines.h
   
 
-How to Compile (Requiered sources)
+How to Make (Requiered source code list)
 -----------
 ####1) Linux Client
 *  MQTTS_Defines.h  
