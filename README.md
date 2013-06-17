@@ -20,7 +20,7 @@ Module descriptions
 Client application sample which is used for debugging.
 
 ####2) MqttsClient.cpp
-  MQTT-S Client Engine class. This is used by application.
+  MQTT-S Client Engine class. This Class is used by  a application.
  
   Usages are shown as follows.
   
@@ -80,41 +80,44 @@ XBee configuratios
 How to Compile (Requiered sources)
 -----------
 ####1) Linux Client
-  MQTTS_Defines.h
-  ZBeeStack.h
-  ZBeeStack.cpp
-  Mqtts.cpp
-  Mqtts.h
-  MqttsClient.cpp
-  MqttsClient.h
-  MqttsClientApp.cpp
+*  MQTTS_Defines.h  
+*  ZBeeStack.h  
+*  ZBeeStack.cpp  
+*  Mqtts.cpp  
+*  Mqtts.h  
+*  MqttsClient.cpp  
+*  MqttsClient.h  
+*  MqttsClientApp.cpp  
 
 ####2) Linux Gateway
-  MQTTS_Defines.h
-  ZBeeStack.h
-  ZBeeStack.cpp
-  Mqtts.cpp
-  Mqtts.h
-  MqttsGateway.cpp
-  MqttsGateway.h
-  MqttsGatewayApp.cpp
+*  MQTTS_Defines.h
+*  ZBeeStack.h
+*  ZBeeStack.cpp
+*  Mqtts.cpp
+*  Mqtts.h
+*  MqttsGateway.cpp
+*  MqttsGateway.h
+*  MqttsGatewayApp.cpp
   
 ####3) Arduino Client
-  MQTTS_Defines.h
-  ZBeeStack.h
-  ZBeeStack.cpp
-  Mqtts.cpp
-  Mqtts.h
-  MqttsClient.cpp
-  MqttsClient.h
-  MqttsClientAppFwArduino.cpp
-  MqttsClientAppFwArduino.h
-  Copy those files into Aruino Librally directory/
+_Copy these files into Aruino Librally directory._
+*  MQTTS_Defines.h
+*  ZBeeStack.h
+*  ZBeeStack.cpp
+*  Mqtts.cpp
+*  Mqtts.h
+*  MqttsClient.cpp
+*  MqttsClient.h
+*  MqttsClientAppFwArduino.cpp
+*  MqttsClientAppFwArduino.h
+
+_Copy this file into Aruino sketch directory._
+*  MqttsClientFwApp.ino
   
   
   
-Contact
--------
+###Contact
+
 
 * Author:    Tomoaki YAMAGUCHI
 * Email:     tomoaki@tomy-tech.com
