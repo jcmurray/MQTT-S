@@ -1,7 +1,7 @@
 /*
  * MqttsClient.h
  *
- *               Copyright (c) 2013, tomy-tech.com
+ *               Copyright (c) 2013, Tomoaki YAMAGUCHI
  *                       All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without 
@@ -24,20 +24,22 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT  
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * 
- *  Created on: 2013/06/08
+ * You should have received a copy of the GNU General Public License
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Created on: 2013/06/17
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.3.1
+ *     Version: 1.0.0
  *
  */
 
 #ifndef MQTTSCLIENT_H_
 #define MQTTSCLIENT_H_
 
-#ifndef ARDUINO
-        #include "MQTTS_Defines.h"
-#else
+#ifdef ARDUINO
         #include <MQTTS_Defines.h>
+#else
+        #include "MQTTS_Defines.h"
 #endif
 
 
@@ -122,19 +124,25 @@ public:
     MQString* getClientId();
     uint16_t getNextMsgId();
     bool isGwConnected();
+    void runConnect();
+    void run();
+    void runLoop();
 
     //void setClientId(MQString* clientId);
     int  connect();
     int  publish(MQString* topic, const char* data, int dataLength);
+    int  publish(uint16_t predifinedId,  const char* data, int dataLength);
     int  registerTopic(MQString* topic);
-    int  subscribe(MQString* topic, uint8_t type, TopicCallback callback);
+    int  subscribe(MQString* topic, TopicCallback callback);
+    int  subscribe(uint16_t predefinedId, TopicCallback callback);
     int  unsubscribe(MQString* topic);
+    int  unsubscribe(uint16_t predefinedId);
     int  disconnect(uint16_t duration = 0);
     bool init(const char* clientIdName);
     int  execMsgRequest();
     void recieveMessageHandler(ZBRxResponse* msg, int* returnCode);
     void publishHdl(MqttsPublish* msg);
-    void createTopic(MQString* topic, uint8_t type, TopicCallback callback);
+    void createTopic(MQString* topic, TopicCallback callback);
 
 private:
     int  searchGw(uint8_t radius);
