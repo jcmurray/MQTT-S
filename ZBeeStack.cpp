@@ -24,8 +24,6 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT  
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * You should have received a copy of the GNU General Public License
- * If not, see <http://www.gnu.org/licenses/>.
  *
  *  Created on: 2013/06/17
  *  Author:     Tomoaki YAMAGUCHI
