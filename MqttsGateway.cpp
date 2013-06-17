@@ -25,9 +25,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * 
- *  Created on: 2013/06/02
+ *  Created on: 2013/06/17
  *      Author: Tomoaki YAMAGUCHI
- *     Version:
+ *     Version: 0.5.0
  *
  */
 
@@ -169,8 +169,8 @@ uint16_t MqttsGateway::getNextTopicId(){
     return _topicId;
 }
 
-void MqttsGateway::createTopic(MQString* topic, uint8_t type, TopicCallback callback){
-    _topics.addTopic(topic, type);
+void MqttsGateway::createTopic(MQString* topic, TopicCallback callback){
+    _topics.addTopic(topic);
     _topics.setCallback(topic, callback);
 }
 
@@ -249,7 +249,7 @@ int MqttsGateway::execMsgRequest(){
 
 /*-------------------------------------------------------------------------*/
 int MqttsGateway::broadcast(uint16_t packetReadTimeout){
-  _zbee->bcastData(_sendQ->getMessage(0)->getMsgBuff()->getBuff(),
+  _zbee->bcastData(_sendQ->getMessage(0)->getMsgBuff(),
                                 _sendQ->getMessage(0)->getLength());
   _sendQ->getMessage(0)->setStatus(MQTTS_MSG_COMPLETE);
   _sendQ->deleteRequest(0);
@@ -257,9 +257,9 @@ int MqttsGateway::broadcast(uint16_t packetReadTimeout){
 }
 
 int MqttsGateway::unicast(uint16_t packetReadTimeout){
-    _zbee->sendData(&getRxRemoteAddress64(), getRxRemoteAddress16(),
-                                _sendQ->getMessage(0)->getMsgBuff()->getBuff(),
-                                _sendQ->getMessage(0)->getLength(), 0);
+  _zbee->sendData(&getRxRemoteAddress64(), getRxRemoteAddress16(),
+                                  _sendQ->getMessage(0)->getMsgBuff(),
+                                  _sendQ->getMessage(0)->getLength(), 0);
     _sendQ->getMessage(0)->setStatus(MQTTS_MSG_COMPLETE);
     _sendQ->deleteRequest(0);
     return MQTTS_ERR_NO_ERROR;
@@ -409,13 +409,11 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
         printf("SUBSCRIBE recv\n");
         MqttsSubscribe mqMsg = MqttsSubscribe();
         mqMsg.setFrame(recvMsg);
-        MQString name;
-        name.readBuf(mqMsg.getTopicName());
+        MQString* mqStr = mqMsg.getTopicName()->create();
 
-        MQString* mqStr = name.create();
         uint16_t id = _topics.getTopicId(mqStr);
         if (!id){
-            _topics.addTopic(mqStr, mqMsg.getFlags() & 0x3);
+            _topics.addTopic(mqStr);
             id = getNextTopicId();
             _topics.setTopicId(mqStr, id);
         }
@@ -445,7 +443,18 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
         printf("REGISTER recv\n");
         MqttsRegister mqMsg = MqttsRegister();
         mqMsg.setFrame(recvMsg);
-        regAck(MQTTS_DEBUG_TOPIC_ID, mqMsg.getMsgId(), 0);
+
+        uint16_t topicId = _topics.getTopicId(mqMsg.getTopicName());
+        if (topicId){
+            regAck(topicId, mqMsg.getMsgId(), 0);
+        }else{
+            MQString* mqStr = mqMsg.getTopicName()->create();
+            _topics.addTopic(mqStr);
+            _topics.setTopicId(mqStr, getNextTopicId());
+            regAck(_topics.getTopicId(mqStr), mqMsg.getMsgId(), 0);
+        }
+
+
 
 /*---------  UNSUBSCRIBE  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_UNSUBSCRIBE){
@@ -458,8 +467,8 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_DISCONNECT){
         printf("DISCONNECT recv\n");
         MqttsDisconnect mqMsg = MqttsDisconnect();
-        memcpy(mqMsg.getMsgBuff()->getBuff(), recvMsg->getData(), recvMsg->getData()[0]);
         //_nodeList->getZBNode(getRxRemoteAddress16())->setNodeStatus(MQTTS_DEVICE_DISCONNECTED);
+        memcpy(mqMsg.getMsgBuff(), recvMsg->getData(), recvMsg->getData()[0]);
         disconnect();
 
 
