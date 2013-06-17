@@ -2,8 +2,8 @@
  * ZBeeStack.h
  *
  *
- *               Copyright (c) 2009 Andrew Rapp.    All rights reserved.
- *               Copyright (c) 2013 tomy-tech.com  All rights reserved.
+ *               Copyright (c) 2009 Andrew Rapp.       All rights reserved.
+ *               Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without 
  * modification, are permitted provided that the following conditions are met:
@@ -29,19 +29,19 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  * 
- *  Created on: 2013/06/11
+ *  Created on: 2013/06/17
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.4.0
+ *     Version: 1.0.0
  *
  */
 
 #ifndef ZBEESTACK_H_
 #define ZBEESTACK_H_
 
-#ifndef ARDUINO
-        #include "MQTTS_Defines.h"
-#else
+#ifdef ARDUINO
         #include <MQTTS_Defines.h>
+#else
+        #include "MQTTS_Defines.h"
 #endif
 
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -435,19 +435,19 @@ private:
 class XTimer {
 public:
   XTimer();
-  void start(long msec);
-  void start(void);
-  bool isTimeUp(long msec);
+  void start(uint32_t msec = 0);
+  bool isTimeUp(uint32_t msec);
   bool isTimeUp(void);
   void stop();
 private:
 
 #ifdef ARDUINO
-  long _startTime;
+  uint32_t _startTime;
+  uint32_t _currentTime;
 #else
   struct timeval _startTime;
 #endif
-  long _millis;
+  uint32_t _millis;
 };
 
 
