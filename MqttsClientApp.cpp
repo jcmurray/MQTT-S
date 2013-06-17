@@ -1,4 +1,37 @@
-
+/*
+ * MqttsClientApp.cpp
+ *
+ *               Copyright (c) 2013, Tomoaki YAMAGUCHI
+ *                       All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *     Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * You should have received a copy of the GNU General Public License
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Created on: 2013/06/17
+ *      Author: Tomoaki YAMAGUCHI
+ *     Version: 1.0.0
+ *
+ */
 
 #ifdef ARDUINO
   #include <MQTTS_Defines.h>
@@ -29,15 +62,9 @@ int fnTp1(MqttsPublish* msg){
 
 int main(int argc, char **argv){
 
-  /* Client Test  */
+    MqttsClient mqtts = MqttsClient();
 
-
-
-  MqttsClient mqtts = MqttsClient();
-
-
-
-    mqtts.begin(argv[1], B9600);
+    mqtts.begin(argv[1], B38400);
     mqtts.init("Node-02");
     mqtts.setQos(1);
     //mqtts.setWillTopic(willtopic);
@@ -47,101 +74,37 @@ int main(int argc, char **argv){
 
     fprintf(stdout,"Connect\n");
     mqtts.connect();
+    mqtts.runConnect();
 
-    while(true){
-        int rc = mqtts.execMsgRequest();
-        if (mqtts.isGwConnected()){
-            break;
-        }else if ( rc != MQTTS_ERR_NO_ERROR){
-            fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, mqtts.getMsgRequestStatus());
-            if ( mqtts.getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-                mqtts.setMsgRequestStatus(MQTTS_MSG_REQUEST);
-            }else{
-                mqtts.clearMsgRequest();
-            }
-        }
-    }
-/*
-    MQString *topic = new MQString("a/bcd/ef");
+    MQString *topic0 = new MQString("a/bcd/ef");
 
-    mqtts.registerTopic(topic);
+    mqtts.registerTopic(topic0);
+    mqtts.run();
 
-    while(true){
-            int rc = mqtts.execMsgRequest();
-        if (rc == MQTTS_ERR_NO_ERROR && mqtts.getMsgRequestCount() == 0){
-            break;
-        }else if ( mqtts.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-            fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, mqtts.getMsgRequestStatus());
-                mqtts.clearMsgRequest();
-        }
-    }
-*/
     /*
     mqtts.disconnect();
-    while(true){
-        int rc = mqtts.execMsgRequest();
-        if (rc == MQTTS_ERR_NO_ERROR && mqtts.getMsgRequestCount() == 0){
-            break;
-        }else if( mqtts.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-            fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, mqtts.getMsgRequestStatus());
-                mqtts.clearMsgRequest();
-        }
-    }
+    mqtts.run();
     */
 
+    MQString *topic1 = new MQString("g/hij/kl");
+
+    mqtts.subscribe(topic1, fnTp1);
+    mqtts.run();
+
     /*
-    mqtts.willTopic();
+    mqtts.unsubscribe(topic1);
+    mqtts.run();
+    */
 
-        while(true){
-            int rc = mqtts.execMsgRequest();
-            if (rc == MQTTS_ERR_NO_ERROR && mqtts.getMsgRequestCount() == 0){
-                break;
-            }else if( mqtts.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, mqtts.getMsgRequestStatus());
-                    mqtts.clearMsgRequest();
-            }
-        }
-     */
+    while(true){
+      int rc = mqtts.publish(topic0,"123456",6);
+      mqtts.run();
+      fprintf(stdout,"%d\n", rc);
+    }
 
-    MQString *topic = new MQString("a/bcd/ef");
+    mqtts.runLoop();
 
-    mqtts.subscribe(topic, MQTTS_TOPIC_TYPE_NORMAL, fnTp1);
-
-        while(true){
-            int rc = mqtts.execMsgRequest();
-            if (rc == MQTTS_ERR_NO_ERROR && mqtts.getMsgRequestCount() == 0){
-                break;
-            }else if( mqtts.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, mqtts.getMsgRequestStatus());
-                    mqtts.clearMsgRequest();
-            }
-        }
-
-/*
-
-        mqtts.unsubscribe(topic);
-
-            while(true){
-                int rc = mqtts.execMsgRequest();
-                if (rc == MQTTS_ERR_NO_ERROR && mqtts.getMsgRequestCount() == 0){
-                    break;
-                }else if( mqtts.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                    fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, mqtts.getMsgRequestStatus());
-                        mqtts.clearMsgRequest();
-                }
-            }
-*/
-        while(true){
-                        int rc = mqtts.execMsgRequest();
-                        if (rc == MQTTS_ERR_NO_ERROR && mqtts.getMsgRequestCount() == 0){
-                            continue;
-                        }else if( mqtts.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                            fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, mqtts.getMsgRequestStatus());
-                                mqtts.clearMsgRequest();
-                        }
-                    }
-
-     fprintf(stdout,"__end__\n");
+    fprintf(stdout,"__end__\n");
 
 
 }
