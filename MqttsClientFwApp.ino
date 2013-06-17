@@ -23,7 +23,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- *
  *  Created on: 2013/06/08
  *      Author: Tomoaki YAMAGUCHI
  *     Version: 0.3.0
