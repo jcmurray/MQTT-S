@@ -33,198 +33,83 @@
  *
  */
  
+
 #include <MQTTS_Defines.h>
 #include <MqttsClientAppFw4Arduino.h>
 
-
 #if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK) 
-// SoftwareSerial for consol
-#include <SoftwareSerial.h>
-
-uint8_t ssRX = 8; // Connect Arduino pin 8 to TX of usb-serial device
-uint8_t ssTX = 9; // Connect Arduino pin 9 to RX of usb-serial device
-SoftwareSerial debug(ssRX, ssTX);
-
-void debugPrint(int rc, uint8_t stat){
-    debug.print("Rc = " );
-    debug.print( rc, DEC);
-    debug.print("  Request status = 0x");
-    debug.println(stat, HEX);
-}
+    #include <SoftwareSerial.h>
+    uint8_t ssRX = 8; // Connect Arduino pin 8 to TX of usb-serial device
+    uint8_t ssTX = 9; // Connect Arduino pin 9 to RX of usb-serial device
+    SoftwareSerial debug(ssRX, ssTX);
 #endif
 
-// Create Application
-MqttsClientApplication app;
-
-MQString* topic1 = new MQString("a/bcd/efg");
-// Loopback
-
-
-uint16_t  cnt0 = 0;
-uint16_t  cnt1 = 0;
-
-int pubCallback1(MqttsPublish* msg){
-  debug.println("pubCallback1 was executed");
-  app.blinkIndicator(1000);
-  return 0;
-}
-
-// Callback for WDT
-void wdtFunc0(){
-  app.publish(topic1, "abcdefg", 6);
-}
-
-// Callbacks for WDT
-void wdtFunc1(){
-  app.publish(topic1, "123456", 6);
-}
-
-// Callback for INT0
-void intFunc(){
-  
-  
-}
-
-/*
-void func0() {
-
-}
-*/
-
-void setup() {
-#if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK) 
+    MqttsClientApplication app = MqttsClientApplication();
+    
+    MQString* tp1 = new MQString("abc/def/g");
+    MQString* tp2 = new MQString("efg/hi/j");
+    
+       int  cb1(MqttsPublish* msg){
+          #ifdef MQTTS_DEBUG
+          debug.println("exec callback");
+          #endif
+          return 0;
+    }
+    
+    
+void setup(){
+  #if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK) 
   debug.begin(19200);
 #endif
 
-  // Register Callback for INT0
-  app.registerInt0Callback(intFunc);
-  
-  // Register Callbacks for WDT (millSec、callback)
-  app.registerWdtCallback(10000,wdtFunc0);
-  app.registerWdtCallback(20000,wdtFunc1);
-  
-  app.setup("Node-02",9600);
-  app.setQos(1);
-  app.setKeepAlive(60000);
-
+  app.begin(38400);
+  app.init("Node-02");
+    app.setQos(1);
+    //app.setWillTopic(willtopic);
+    //app.setWillMessage(willmsg);
+    app.setKeepAlive(300000);
+    
 }
 
+void loop(){    
 
-void loop() {
-   app.connect();
+    app.connect();
+    app.runConnect();
+   
 
-    while(true){
-        int rc = app.execMsgRequest();
-        if (app.isGwConnected()){
-            break;
-        }else if ( rc != MQTTS_ERR_NO_ERROR){
-          #ifdef DEBUG_MQTTS
-               debugPrint(rc, app.getMsgRequestStatus());
-           #endif
-            if ( app.getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-                app.setMsgRequestStatus(MQTTS_MSG_REQUEST);
-            }else{
-                app.clearMsgRequest();
-            }
-        }
-    }
-    app.startWdt();
-/*
-    MQString *topic = new MQString("a/bcd/ef");
+    app.registerTopic(tp1);
+    app.run();
+    
+    app.registerTopic(tp2);
+    app.run();
 
-    app.registerTopic(topic);
-
-    while(true){
-            int rc = execMsgRequest();
-        if (rc == MQTTS_ERR_NO_ERROR && app.getMsgRequestCount() == 0){
-            break;
-        }else if ( app.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-            #ifdef DEBUG_MQTTS
-               debugPrint(rc, app.getMsgRequestStatus());
-           #endif
-                app.clearMsgRequest();
-        }
-    }
-*/
     /*
     app.disconnect();
-    while(true){
-        int rc = app.execMsgRequest();
-        if (rc == MQTTS_ERR_NO_ERROR && app.getMsgRequestCount() == 0){
-            break;
-        }else if  ( app.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-            #ifdef DEBUG_MQTTS
-               debugPrint(rc, app.getMsgRequestStatus());
-           #endif
-                app.clearMsgRequest();
-        }
-    }
+    app.run();
     */
 
     /*
     app.willTopic();
-
-        while(true){
-            int rc = app.execMsgRequest();
-            if (rc == MQTTS_ERR_NO_ERROR && app.getMsgRequestCount() == 0){
-                break;
-            }else if  ( app.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-               #ifdef DEBUG_MQTTS
-               debugPrint(rc, app.getMsgRequestStatus());
-           #endif
-                    app.clearMsgRequest();
-            }
-        }
+    app.run();
      */
 
     MQString *topic = new MQString("a/bcd/ef");
 
-    app.subscribe(topic, MQTTS_TOPIC_TYPE_NORMAL,  pubCallback1);
+    app.subscribe(topic, cb1);
+    app.run();
 
-        while(true){
-            int rc = app.execMsgRequest();
-            if (rc == MQTTS_ERR_NO_ERROR && app.getMsgRequestCount() == 0){
-                break;
-            }else if  ( app.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                #ifdef DEBUG_MQTTS
-               debugPrint(rc, app.getMsgRequestStatus());
-           #endif
-                    app.clearMsgRequest();
-            }
-        }
-
-/*
-
-        app.unsubscribe(topic);
-
-            while(true){
-                int rc = app.execMsgRequest();
-                if (rc == MQTTS_ERR_NO_ERROR && app.getMsgRequestCount() == 0){
-                    break;
-                }else if  ( app.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                    #ifdef DEBUG_MQTTS
-                       debugPrint(rc, app.getMsgRequestStatus());
-                   #endif
-                        app.clearMsgRequest();
-                }
-            }
-*/
-        while(true){
-            int rc = app.execMsgRequest();
-            if (rc == MQTTS_ERR_NO_ERROR && app.getMsgRequestCount() == 0){
-                continue;
-            }else if  ( app.getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                #ifdef DEBUG_MQTTS
-                     debugPrint(rc, app.getMsgRequestStatus());
-               #endif
-                    app.clearMsgRequest();
-            }
-            app.checkInterupt();
-            
-        }
+    app.publish(topic, "abcde", 5);
+    app.run();
+       
+    /*
+    app.unsubscribe(topic);
+    app.run();
+    */
+    app.startWdt();
+    app.runLoop();
+        
 
 }
-
 
 
 
