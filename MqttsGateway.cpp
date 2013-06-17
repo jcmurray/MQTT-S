@@ -1,6 +1,8 @@
 /*
  * MqttsGateway.cpp
  *
+ *                        The MIT License (MIT)
+ *
  *               Copyright (c) 2013, tomy-tech.com
  *                       All rights reserved.
  *
