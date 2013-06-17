@@ -27,7 +27,7 @@
  * 
  *  Created on: 2013/06/02
  *      Author: Tomoaki YAMAGUCHI
- *     Version:
+ *     Version: 0.4.0
  *
  */
 
@@ -105,7 +105,7 @@ public:
     bool init(const char* gatewayIdName, uint8_t id);
     int  execMsgRequest();
     void recieveMessageHandler(ZBRxResponse* msg, int* returnCode);
-    void createTopic(MQString* topic, uint8_t type, TopicCallback callback);
+    void createTopic(MQString* topic, TopicCallback callback);
     uint16_t getNextMsgId();
     uint16_t getNextTopicId();
     void setLoopCtrl(uint8_t msgType);
