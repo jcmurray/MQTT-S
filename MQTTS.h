@@ -1,6 +1,8 @@
 /*
  * MQTTS.h
  *
+ *                               The MIT License (MIT)
+ *
  *               Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,8 +25,6 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * You should have received a copy of the GNU General Public License
- * If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *  Created on: 2013/06/17
