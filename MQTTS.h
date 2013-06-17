@@ -1,7 +1,7 @@
 /*
  * MQTTS.h
  *
- *               Copyright (c) 2013 tomy-tech.com  All rights reserved.
+ *               Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,9 +27,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  *
- *  Created on: 2013/06/11
+ *  Created on: 2013/06/17
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.4.0
+ *     Version: 1.0.0
  *
  */
 
@@ -60,7 +60,7 @@
 #endif
 
 
-#define MQTTS_DEFAULT_KEEPALIVE  20000
+#define MQTTS_DEFAULT_KEEPALIVE  300000
 #define MQTTS_TIME_SEARCHGW      3000
 #define MQTTS_TIME_RESPONCE      3000
 #define MQTTS_TIME_RETRY         3000
@@ -100,7 +100,7 @@
 #define MQTTS_TOPIC_TYPE_NORMAL     0x00
 #define MQTTS_TOPIC_TYPE_PREDEFINED 0x01
 #define MQTTS_TOPIC_TYPE_SHORT      0x02
-
+#define MQTTS_TOPIC_TYPE            0x03
 
 #define MQTTS_FLAG_DUP     0b10000000
 #define MQTTS_FLAG_QOS_0   0b00000000
@@ -184,22 +184,6 @@ private:
 };
 
 /*=====================================
-        Class MsgBuff
- ======================================*/
-class MsgBuff{
-public:
-    MsgBuff(uint8_t len);
-    ~MsgBuff();
-    uint8_t* getBuff();
-    uint8_t  getLength();
-    void copy(MsgBuff* src);
-    void copy(uint8_t* data, uint8_t length);
-private:
-    uint8_t* _buff;
-    uint8_t  _length;
-};
-
-/*=====================================
         Class MqttsMessage
   =====================================*/
 class MqttsMessage {
@@ -216,13 +200,13 @@ public:
     uint8_t getStatus();
     uint8_t* getBody();
     uint8_t getBodyLength();
-    MsgBuff* getMsgBuff();
+    uint8_t* getMsgBuff();
     uint8_t getFrameLength();
     bool  copy(MqttsMessage* src);
     void  reset();
-    void  setMsgBuff(MsgBuff* buff);
+    void  setMsgBuff(uint8_t* buff);
 protected:
-    MsgBuff* _msgBuff;
+    uint8_t* _msgBuff;
 private:
     uint8_t  _status; // 1:request 2:sending 3:resending 4:waitingAck  5:complite
     uint8_t  _length;
@@ -455,17 +439,17 @@ public:
 	void setMsgId(uint16_t msgId);
 	uint16_t getMsgId();
 	uint16_t getTopicId();
-        uint8_t  getTopicType();
         uint8_t  getQos();
 	void setTopicName(MQString* topicName);
-	uint8_t* getTopicName();
-	void setTopicId(uint16_t topicId);
+	MQString* getTopicName();
+	void setTopicId(uint16_t predefinedId);
         void setFrame(uint8_t* data, uint8_t len);
         void setFrame(ZBRxResponse* resp);
 private:
 	uint16_t _topicId;
 	uint8_t  _flags;
 	uint16_t _msgId;
+	MQString _ustring;
  };
 
 /*=====================================
@@ -552,19 +536,6 @@ private:
 
  };
 
-
-
-/*=====================================
-        Class Callback
- ======================================*/
-class Callback {
-public:
-	Callback();
-	void exec(void);
-	void exec(ZBRxResponse* data, int* returnCode);
-	//void exec(MqttsPublish* msg);
-};
-
 /*=====================================
         Class Topic
  ======================================*/
@@ -583,7 +554,6 @@ public:
     void     setTopicId(uint16_t id);
     void     setTopicName(MQString* topic);
     void     setStatus(uint8_t stat);
-    void     setTopicType(uint8_t type);
     int      execCallback(MqttsPublish* msg);
     void     copy(Topic* src);
     void     setCallback(TopicCallback callback);
@@ -591,7 +561,6 @@ public:
     bool     isMatch(Topic* wildCard);
 private:
     uint16_t  _topicId;
-    uint8_t   _topicType;
     uint8_t   _status;
     MQString*  _topicStr;
     TopicCallback  _callback;
@@ -608,12 +577,11 @@ public:
       uint16_t  getTopicId(MQString* topic);
       Topic*    getTopic(MQString* topic);
       Topic*    getTopic(uint16_t topicId);
-      uint8_t   getTopicType(MQString* topic);
       bool     setTopicId(MQString* topic, uint16_t id);
       bool     setCallback(MQString* topic, TopicCallback callback);
       bool     setCallback(uint16_t topicId, TopicCallback callback);
       int     execCallback(uint16_t  topicId, MqttsPublish* msg);
-      void     addTopic(MQString* topic, uint8_t type = MQTTS_TOPIC_TYPE_NORMAL);
+      void     addTopic(MQString* topic);
       Topic*    match(MQString* topic);
       void     setSize(uint8_t size);
 
@@ -654,7 +622,7 @@ class PublishHandller {
 public:
     PublishHandller();
     ~PublishHandller();
-    void exec(MqttsPublish* msg, Topics* topics);
+    int exec(MqttsPublish* msg, Topics* topics);
 
 };
 
