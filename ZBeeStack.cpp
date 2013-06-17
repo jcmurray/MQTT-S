@@ -1,8 +1,8 @@
 /*
  * ZBeeStack.cpp
  *
- *               Copyright (c) 2009 Andrew Rapp.    All rights reserved.
- *               Copyright (c) 2013, tomy-tech.com  All rights reserved.
+ *               Copyright (c) 2009 Andrew Rapp.       All rights reserved.
+ *               Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without 
  * modification, are permitted provided that the following conditions are met:
@@ -27,9 +27,9 @@
  * You should have received a copy of the GNU General Public License
  * If not, see <http://www.gnu.org/licenses/>.
  *
- *  Created on: 2013/06/11
+ *  Created on: 2013/06/17
  *  Author:     Tomoaki YAMAGUCHI
- *  Version:    0.4.0
+ *  Version:    1.0.0
  *
  */
 #ifndef ARDUINO
@@ -756,55 +756,7 @@ bool XBee::read(uint8_t *buff){
              Class XBeeTimer
  =========================================*/
 
-#ifndef ARDUINO
-XTimer::XTimer(){
-  stop();
-}
-
-void XTimer::start(long msec){
-  gettimeofday(&_startTime, NULL);
-  _millis = msec;
-}
-
-bool XTimer::isTimeUp(){
-  struct timeval curTime;
-    long int secs, usecs;
-
-    if (_startTime.tv_sec == 0){
-        return false;
-    }else{
-    gettimeofday(&curTime, NULL);
-        secs  = curTime.tv_sec  - _startTime.tv_sec;
-        usecs = curTime.tv_usec - _startTime.tv_usec;
-        return ((uint16_t)((secs) * 1000 + usecs/1000.0) > _millis);
-    }
-}
-
-void XTimer::start(){
-  gettimeofday(&_startTime, NULL);
-  _millis = 0;
-}
-
-bool XTimer::isTimeUp(long msec){
-  struct timeval curTime;
-    long int secs, usecs;
-    if (_startTime.tv_sec == 0){
-        return false;
-    }else{
-        gettimeofday(&curTime, NULL);
-        secs  = curTime.tv_sec  - _startTime.tv_sec;
-        usecs = curTime.tv_usec - _startTime.tv_usec;
-        return ((uint16_t)((secs) * 1000 + usecs/1000.0) > msec);
-    }
-}
-
-void XTimer::stop(){
-  _startTime.tv_sec = 0;
-  _millis = 0;
-}
-
-
-#else
+#ifdef ARDUINO
 /**
  *   for Arduino
  */
@@ -812,35 +764,67 @@ XTimer::XTimer(){
     stop();
 }
 
-void XTimer::start(long msec){
+void XTimer::start(uint32_t msec){
     _startTime = millis();
     _millis = msec;
+    _currentTime = 0;
 }
 
 bool XTimer::isTimeUp(){
-    if (_millis == 0){
-        return false;
-    }else{
-        return (((uint16_t)millis() - _startTime) > _millis);
-    }
+    return isTimeUp(_millis);
 }
 
-void XTimer::start(){
-  _startTime = millis();
-  _millis = 0;
-}
-
-bool XTimer::isTimeUp(long msec){
-    if ( _startTime == 0){
-        return false;
+bool XTimer::isTimeUp(uint32_t msec){
+    if ( _startTime){
+        _currentTime = millis();
+        if ( _currentTime < _startTime){
+            return (0xffffffff - _startTime + _currentTime > msec);
+        }else{
+            return (_currentTime - _startTime > msec);
+        }
     }else{
-        return (((uint16_t)millis() - _startTime) > msec);
+        return false;
     }
 }
 
 void XTimer::stop(){
     _startTime = 0;
     _millis = 0;
+}
+
+#else
+/**
+ *   for LINUX & MBED
+ */
+XTimer::XTimer(){
+  stop();
+}
+
+void XTimer::start(uint32_t msec){
+  gettimeofday(&_startTime, NULL);
+  _millis = msec;
+}
+
+bool XTimer::isTimeUp(){
+  return isTimeUp(_millis);
+}
+
+bool XTimer::isTimeUp(uint32_t msec){
+  struct timeval curTime;
+    unsigned long secs, usecs;
+    if (_startTime.tv_sec == 0){
+        return false;
+    }else{
+        gettimeofday(&curTime, NULL);
+        secs  = curTime.tv_sec  - _startTime.tv_sec;
+        usecs = curTime.tv_usec - _startTime.tv_usec;
+        return ((unsigned long)((secs) * 1000 + usecs/1000.0) > msec);
+    }
+}
+
+void XTimer::stop(){
+  _startTime.tv_sec = 0;
+  _millis = 0;
 }
 
 #endif  /* ARDUINO */
