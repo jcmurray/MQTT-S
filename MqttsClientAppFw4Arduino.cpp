@@ -1,7 +1,7 @@
 /*
  * MqttsClientApplication.cpp
  *
- *               Copyright (c) 2013 tomy-tech.com  All rights reserved.
+ *               Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,9 +27,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  *
- *  Created on: 2013/05/27
+ *  Created on: 2013/06/17
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.2.2
+ *     Version: 1.0.0
  *
  */
  
@@ -48,8 +48,8 @@ MqttsClientApplication* theApplication = NULL;
 enum MQ_INT_STATUS MQ_intStat;
 enum MQ_INT_STATUS MQ_wdtStat;
 
-#ifdef DEBUG_ZBEESTACK
-  #include <SoftwareSerial.h>
+#if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
+	#include <SoftwareSerial.h>
 	extern SoftwareSerial debug;
 #endif
 
@@ -58,7 +58,10 @@ enum MQ_INT_STATUS MQ_wdtStat;
  --------------------------------*/
 ISR (WDT_vect) {
 	cli();
-	wdt_disable();
+	MCUSR = 0;
+	wdt_reset();
+	WDTCSR |= B00011000;   // WDCE:on, WDE:on
+	WDTCSR = 0x00;
 	MQ_wdtStat = INT_WDT;
 	sei();
 }
@@ -74,18 +77,19 @@ void MQInt0(){
 /*-------------------------------
  * Set WDT
  --------------------------------*/
-void MQ_watchdogEnable(uint8_t time){  // Turn on WDT
+void MQwatchdogEnable(){  // Turn on WDT
 	cli();
 	MCUSR = 0;
+	wdt_reset();
 	WDTCSR |= B00011000;   // WDCE:on, WDE:on
-	WDTCSR = time;
+	WDTCSR = MQ_WDT_TIME_SEC;
 	sei();
 }
 
 /*--------------------------------
    Dummy function
 ---------------------------------*/
-void MQ_dummy(){
+void MQdummy(){
 }
 
 /*========================================
@@ -94,10 +98,8 @@ void MQ_dummy(){
 MqttsClientApplication::MqttsClientApplication(){
 	_txFlag = false;
 	_wdtCnt = 0;
-	_wakeupCnt = 0;
-	_wakeupCntReg = 0;
-	_intHandler = MQ_dummy;
-	_wakeupCnt = 15;
+	_intHandler = MQdummy;
+
 }
 
 MqttsClientApplication::~MqttsClientApplication(){
@@ -122,8 +124,8 @@ void MqttsClientApplication::registerInt0Callback(void (*callback)()){
 }
 
 
-void MqttsClientApplication::registerWdtCallback(uint16_t milisec, void (*callback)()){
-  _wdTimer.registerCallback(milisec, callback);
+void MqttsClientApplication::registerWdtCallback(double sec, void (*callback)()){
+  _wdTimer.registerCallback(sec, callback);
 }
 
 
@@ -131,14 +133,7 @@ void MqttsClientApplication::checkInterupt(){
 
 	// WDT event
 	if (MQ_wdtStat == INT_WDT){
-debug.println("WDT up");
-		if (_wdtCnt < (_wakeupCnt - 1)){
-			blinkIndicator(1);
-			_wdtCnt++;
-		}else{
-			wdtHandler();
-			_wdtCnt = 0;
-		}
+		wdtHandler();
 	}
 
 	// interrupt Event
@@ -150,13 +145,12 @@ debug.println("WDT up");
 }
 
 void MqttsClientApplication::wdtHandler(){
-	debug.println("execute WDT callback");
 	_wdTimer.timeUp();    // Check All callbacks& exec the count up callBack 
     _wdTimer.start();     // Restart WDT
 }
 
 void MqttsClientApplication::interruptHandler(){
-	//theApplication->doit();
+	_intHandler();
 }
 
 void MqttsClientApplication::setInterrupt(){
@@ -187,13 +181,21 @@ void MqttsClientApplication::wakeupXB(){
 void MqttsClientApplication::sleepApp(){
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 	wdt_reset();
-	MQ_watchdogEnable(MQ_WDT_TIME);
+	MQwatchdogEnable();
 	sleep_enable();
 	MQ_wdtStat = WAIT;
 	sleep_mode();
 	sleep_disable();
 }
 
+void MqttsClientApplication::begin(long baudrate){
+	_mqtts.begin(baudrate);
+}
+
+void MqttsClientApplication::init(const char* clientNameId){
+	_mqtts.init(clientNameId);
+}
+	
 int MqttsClientApplication::connect(){
 	return _mqtts.connect();
 }
@@ -206,9 +208,16 @@ int MqttsClientApplication::publish(MQString* topic, const char* data, int dataL
 	return _mqtts.publish(topic, data, dataLength);
 }
 
-int MqttsClientApplication::subscribe(MQString* topic, uint8_t type, TopicCallback callback){
-	return _mqtts.subscribe(topic, type, callback);
+int MqttsClientApplication::subscribe(MQString* topic, TopicCallback callback){
+	return _mqtts.subscribe(topic, callback);
+}
 
+int MqttsClientApplication::subscribe(uint16_t predefinedId, TopicCallback callback){
+	return _mqtts.subscribe(predefinedId, callback);
+}
+
+int MqttsClientApplication::publish(uint16_t predefinedId, const char* data, int dataLength){
+	return _mqtts.publish(predefinedId, data, dataLength);
 }
 
 int MqttsClientApplication::unsubscribe(MQString* topic){
@@ -268,55 +277,61 @@ void MqttsClientApplication::stopWdt(){
 	_wdTimer.stop();
 }
 	
+void MqttsClientApplication::run(){
+	_mqtts.run();
+}
+
+void MqttsClientApplication::runConnect(){
+	_mqtts.runConnect();
+}
+
+void MqttsClientApplication::runLoop(){
+	while(true){
+        int rc = execMsgRequest();
+		if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) && 
+			getMsgRequestStatus() != MQTTS_MSG_REQUEST){
+			clearMsgRequest();
+		}
+		checkInterupt();
+    }
+}
 
 /*======================================
                Class WdTimer
 ========================================*/
 WdTimer::WdTimer(void) {
-	WdTimer(WDTO_1S);       // Dafault 1Sec
-}
-
-WdTimer::WdTimer(uint8_t wdtTime) {
 	_timerTbls = 0;
 	_timerCnt = 0;
-	//setup(wdtTime);
-	_wdtTime = wdtTime;
-	_resolutionMilisec = 15;
-	for ( uint8_t i = 0; i < wdtTime; i++ ) {
-		_resolutionMilisec = _resolutionMilisec * 2;	
-	}
-}
+	_wdtTime = MQ_WDT_TIME_SEC;
 
-/*
-void WdTimer::setup(uint8_t wdtTime ){
-	_wdtTime = wdtTime;
-	_resolutionMilisec = 15;
-	for ( uint8_t i = 0; i < wdtTime; i++ ) {
-		_resolutionMilisec = _resolutionMilisec * 2;	
-	}
 }
-*/
 
 void WdTimer::start(void) {    
-	wdt_reset();
-    MQ_wdtStat = WAIT;
 	cli();
-    MCUSR = 0;
-    WDTCSR |= B00011000;                 // WDCE:ON, WDE:ON 
-    WDTCSR = B01000110;    // 1 Sec Fixed    TODO: it shoud be variable
+	MQ_wdtStat = WAIT;
+	MCUSR = 0;
+	wdt_reset();
+    WDTCSR |= B00011000;     // WDCE:ON, WDE:ON 
+    WDTCSR = MQ_WDT_TIME;    
     sei();
 }
 
 
 void WdTimer::stop(void){
-	wdt_disable();
+	cli();
+	MCUSR = 0;
+	wdt_reset();
+	WDTCSR |= B00011000;   // WDCE:on, WDE:on
+	WDTCSR = 0x00;
+	MQ_wdtStat = WAIT;
+	sei();
 }
 
 
 void WdTimer::timeUp(void){
 
 	for(uint8_t i = 0; i < _timerCnt; i++) {
-		if ( _timerTbls[i].cnt-- == 0 ) {
+		if ( _timerTbls[i].cnt-- <= 1 ) {
 			(_timerTbls[i].callback)();
 			_timerTbls[i].cnt = _timerTbls[i].cntReg;
 		}
@@ -324,8 +339,7 @@ void WdTimer::timeUp(void){
 }
 
 
-uint8_t WdTimer::registerCallback(uint16_t milisec, void (*callback)()){
-
+uint8_t WdTimer::registerCallback(double sec, void (*callback)()){
 	MQ_TimerTbl *savTbl = _timerTbls;
  	MQ_TimerTbl *newTbl = (MQ_TimerTbl*)calloc(_timerCnt + 1,sizeof(MQ_TimerTbl));
 
@@ -338,7 +352,7 @@ uint8_t WdTimer::registerCallback(uint16_t milisec, void (*callback)()){
 		}
 		free(savTbl);
 
-		_timerTbls[_timerCnt].cnt = milisec / _resolutionMilisec;
+		_timerTbls[_timerCnt].cnt = (uint16_t)(sec / MQ_WDT_TIME_SEC + 0.5 );
 		_timerTbls[_timerCnt].cntReg = _timerTbls[_timerCnt].cnt;
 		_timerTbls[_timerCnt].callback = callback;
 		_timerCnt++;
