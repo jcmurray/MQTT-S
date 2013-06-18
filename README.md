@@ -22,11 +22,11 @@ Usage
 
 ####1) Start Gateway  (argument is a device which XBee dongle connected.)  
     
-    $ MqttsGateway /dev/ttyUSB0      
+    $ MqttsGatewayApp /dev/ttyUSB0      
   
 ####2) Start Client   (argument is a device which XBee dongle connected.)  
     
-    $ MqttsClient /dev/ttyUSB1
+    $ MqttsClientApp /dev/ttyUSB1
   
   A client will connect to the Gateway and publish the message.
   
