@@ -61,6 +61,7 @@
 #define MQTTS_TIME_SEARCHGW      3000
 #define MQTTS_TIME_RESPONCE      3000
 #define MQTTS_TIME_RETRY         3000
+#define MQTTS_TIME_WAIT          3000
 
 
 #define MQTTS_MAX_TOPICS         10
