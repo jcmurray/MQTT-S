@@ -511,6 +511,11 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
                 return MQTTS_ERR_REJECTED;
 
             }else if (getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
+                #ifdef ARDUINO
+                  delay(MQTTS_TIME_WAIT);
+                #else
+                  usleep(MQTTS_TIME_WAIT * 1000);
+                #endif
                 _zbee->sendData(_gwHdl.getAddress64(), _gwHdl.getAddress16(),
                                 _sendQ->getMessage(0)->getMsgBuff(),
                                 _sendQ->getMessage(0)->getLength(), 0);
