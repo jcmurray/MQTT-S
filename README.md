@@ -1,7 +1,7 @@
 MQTT-S
 ======
   MQTT-S Client over XBee  (running on linux and Arduino)  
-  MQTT-S Dummy Gateway for debug
+  MQTT-S Dummy Gateway for debug  
   _Real gateway running on linux and mbed is my next project._
 
 Supported functions
@@ -69,11 +69,11 @@ XBee configuratios
 ----------------------
   Serial interfacing  
   [BD] 0-7   
-  [D7] 1 
+  [D7] 1  
   [D6] 0 or 1  
   [AP] 2
 
-  Other values are defaults. Baudrate is used by  mqtts.begin(device, baudrate) function. 
+  Other values are defaults. Baudrate is used by  mqtts.begin(device, baudrate) function.   
   If you set D6 to 1, uncomment a line //#define XBEE_FLOWCTL_CRTSCTS in Mqtts_Defines.h
   
 
@@ -100,7 +100,7 @@ How to Make (Requiered source code list)
 *  MqttsGatewayApp.cpp
   
 ####3) Arduino Client
-_Copy these files into Aruino Librally directory._
+_Copy 9 files below into Aruino Librally directory._
 *  MQTTS_Defines.h
 *  ZBeeStack.h
 *  ZBeeStack.cpp
