@@ -1,7 +1,8 @@
 MQTT-S
 ======
   MQTT-S Client over XBee  (running on linux and Arduino)  
-  MQTT-S Dummy Gateway for debug  
+  MQTT-S Dummy Gateway for debug
+  _Real gateway running on linux and mbed is my next project._
 
 Supported functions
 -------------------
@@ -16,7 +17,7 @@ Supported functions
 Module descriptions
 -------------------  
 ####1) MqttsClientApp.cpp  
-Client application sample which is used for debugging.
+Client application sample which is used for debug.
 
 ####2) MqttsClient.cpp
   MQTT-S Client Engine class. This Class is used by  a application.  
@@ -54,13 +55,14 @@ Client application sample which is used for debugging.
   Gateway dummy Class for debug. Not real gateway.
     
 ####7) MqttsGatewayApp.cpp  
-  Gateway application for Debug. 
+  Gateway application for debug. 
   
 ####8) MqttsClientAppFw4Arduino.cpp
   Application framework for Arduino.
   Interupt and  watch dog timer are supported.
   
-   
+####9) MqttsClientFwApp.ino
+  MqttsClient sample application for Arduino. 
    
   
 XBee configuratios
