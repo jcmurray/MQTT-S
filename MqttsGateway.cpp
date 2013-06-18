@@ -24,16 +24,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  * 
- *  Created on: 2013/06/17
+ *  Created on: 2013/06/19
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.5.0
+ *     Version: 0.5.1
  *
  */
 
-#ifndef ARDUINO
-        #include "MQTTS_Defines.h"
-#else
+#ifdef ARDUINO
         #include <MQTTS_Defines.h>
+#else
+        #include "MQTTS_Defines.h"
 #endif
 
 
@@ -81,11 +81,10 @@ MqttsGateway::MqttsGateway(){
     _zbee->setSerialPort(_sp);
     _zbee->setRxHandler(ResponseHandlerGw);
     _sendQ = new SendQue();
-    _duration = 0;
+    _duration = MQTTS_DEFAULT_KEEPALIVE;
     _gwId = 0;
     _gatewayId = new MQString();
     _nRetry = 3;
-    _tRetryMsec = 10000; // 10 sec
     _nRetryCnt = 0;
     _tRetry = 0;
     //_nodeList = new ZBNodeList(30);
@@ -136,8 +135,8 @@ void MqttsGateway::setRetryMax(uint8_t cnt){
     _nRetry = cnt;
 }
 
-void MqttsGateway::setDuration(long msec){
-    _duration = msec;
+void MqttsGateway::setDuration(uint16_t sec){
+    _duration = sec;
 }
 
 XBeeAddress64& MqttsGateway::getRxRemoteAddress64(){
@@ -236,10 +235,10 @@ int MqttsGateway::execMsgRequest(){
             return unicast(MQTTS_TIME_RESPONCE);
         }
     }else{
-        if (_advertiseTimer.isTimeUp(_duration)){
+        if (_advertiseTimer.isTimeUp((uint32_t)_duration * 1000)){
             advertise(_duration, _gwId);
-            broadcast(MQTTS_TIME_RESPONCE);
             _advertiseTimer.start();
+            broadcast(MQTTS_TIME_RESPONCE);
         }
         _zbee->readPacket();  //  Just read packet, No send Request
     }
