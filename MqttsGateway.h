@@ -27,9 +27,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * 
- *  Created on: 2013/06/02
+ *  Created on: 2013/06/18
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.4.0
+ *     Version: 0.5.0
  *
  */
 
@@ -83,7 +83,7 @@ public:
     uint16_t getRxRemoteAddress16();
     void setRetryMax(uint8_t cnt);
     uint8_t getGwId();
-    void  setDuration(long msec);
+    void  setDuration(uint16_t sec);
     void setMsgRequestStatus(uint8_t stat);
     void clearMsgRequest();
     uint8_t getMsgRequestType();
@@ -127,13 +127,12 @@ private:
     XTimer           _respTimer;
     XTimer           _advertiseTimer;
 
-    long             _duration;
+    uint16_t         _duration;
     MQString*        _gatewayId;
     uint8_t          _gwId;
     uint8_t          _nRetry;
     uint8_t          _nRetryCnt;
     uint16_t         _tRetry;
-    uint16_t         _tRetryMsec;
     uint16_t         _msgId;
     uint8_t          _loopCtrl;
     uint16_t         _topicId;
