@@ -24,9 +24,9 @@
  * THE SOFTWARE.*
  *
  *
- *  Created on: 2013/06/17
+ *  Created on: 2013/06/19
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  *
  */
 
@@ -56,12 +56,12 @@
         #endif
 #endif
 
-
-#define MQTTS_DEFAULT_KEEPALIVE  300000
-#define MQTTS_TIME_SEARCHGW      3000
-#define MQTTS_TIME_RESPONCE      3000
-#define MQTTS_TIME_RETRY         3000
-#define MQTTS_TIME_WAIT          3000
+                              /* [sec] */
+#define MQTTS_DEFAULT_KEEPALIVE  900
+#define MQTTS_TIME_SEARCHGW        3
+#define MQTTS_TIME_RESPONCE        3
+#define MQTTS_TIME_RETRY           3
+#define MQTTS_TIME_WAIT            3
 
 
 #define MQTTS_MAX_TOPICS         10
