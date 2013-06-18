@@ -25,9 +25,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  *
- *  Created on: 2013/06/17
+ *  Created on: 2013/06/19
  *  Author:     Tomoaki YAMAGUCHI
- *  Version:    1.0.0
+ *  Version:    1.0.1
  *
  */
 #ifndef ARDUINO
@@ -808,15 +808,12 @@ bool XTimer::isTimeUp(){
 }
 
 bool XTimer::isTimeUp(uint32_t msec){
-  struct timeval curTime;
-    unsigned long secs, usecs;
+    struct timeval curTime;
     if (_startTime.tv_sec == 0){
         return false;
     }else{
         gettimeofday(&curTime, NULL);
-        secs  = curTime.tv_sec  - _startTime.tv_sec;
-        usecs = curTime.tv_usec - _startTime.tv_usec;
-        return ((unsigned long)((secs) * 1000 + usecs/1000.0) > msec);
+        return (((curTime.tv_sec  - _startTime.tv_sec) * 1000) > msec);
     }
 }
 
