@@ -561,10 +561,6 @@ XBeeResponse& XBee::getResponse(){
 
 void XBee::readApiFrame(){
 
-  if(_response.isAvailable() || _response.isError()){
-    resetResponse();
-  }
-
   while(read(_b )){
       // Check Start Byte
       if( _pos > 0 && _b[0] == START_BYTE){
@@ -633,44 +629,48 @@ void XBee::readApiFrame(){
   }
 }
 
-bool XBee::readApiFrame(long timeoutMillsec){
-  _tm.start(timeoutMillsec);
-  while(!_tm.isTimeUp()){
-      readApiFrame();
+bool XBee::readApiFrame(uint16_t timeoutMillsec){
 
-      if(getResponse().isAvailable()){
-            #ifdef DEBUG_ZBEESTACK
-                #ifdef ARDUINO
-                    debug.println("");
-                #endif
-                    #ifdef MBED
-                    debug.fprintf(stdout,"\n" );
-                    #endif
-                    #ifdef LINUX
-                    fprintf(stdout,"\n" );
-                #endif
-            #endif
-          return true;
-      }else if(getResponse().isError()){
-            #ifdef DEBUG_ZBEESTACK
-                #ifdef ARDUINO
-                    debug.println("");
-                #endif
-                    #ifdef MBED
-                    debug.fprintf(stdout,"\n" );
-                    #endif
-                    #ifdef LINUX
-                    fprintf(stdout,"\n" );
-                #endif
-            #endif
-          return false;
-      }
-  }
-  return false;   //Timeout
+    resetResponse();
+    _tm.start((uint32_t)timeoutMillsec);
+
+    while(!_tm.isTimeUp()){
+
+        readApiFrame();
+
+        if(getResponse().isAvailable()){
+              #ifdef DEBUG_ZBEESTACK
+                  #ifdef ARDUINO
+                      debug.println("");
+                  #endif
+                      #ifdef MBED
+                      debug.fprintf(stdout,"\n" );
+                      #endif
+                      #ifdef LINUX
+                      fprintf(stdout,"\n" );
+                  #endif
+              #endif
+            return true;
+        }else if(getResponse().isError()){
+              #ifdef DEBUG_ZBEESTACK
+                  #ifdef ARDUINO
+                      debug.println("");
+                  #endif
+                      #ifdef MBED
+                      debug.fprintf(stdout,"\n" );
+                      #endif
+                      #ifdef LINUX
+                      fprintf(stdout,"\n" );
+                  #endif
+              #endif
+            return false;
+        }
+    }
+    return false;   //Timeout
 }
 
 uint8_t XBee::getNextFrameId(){
-  _nextFrameId++;
+    _nextFrameId++;
     if (_nextFrameId == 0){
         _nextFrameId = 1;
     }
@@ -809,11 +809,14 @@ bool XTimer::isTimeUp(){
 
 bool XTimer::isTimeUp(uint32_t msec){
     struct timeval curTime;
+    long secs, usecs;
     if (_startTime.tv_sec == 0){
         return false;
     }else{
         gettimeofday(&curTime, NULL);
-        return (((curTime.tv_sec  - _startTime.tv_sec) * 1000) > msec);
+        secs  = (curTime.tv_sec  - _startTime.tv_sec) * 1000;
+        usecs = (curTime.tv_usec - _startTime.tv_usec) / 1000.0;
+        return ((uint32_t)(secs + usecs) > msec);
     }
 }
 
@@ -1009,15 +1012,17 @@ ZBeeStack::ZBeeStack(){
  _respWaitStat = ZB_WAIT_NORESP;
  _sendReqStat = ZB_SEND_REQ_NO;
  _rxDataReady = false;
- _readTimeout = PACKET_TIMEOUT;
+ //_readTimeout = PACKET_TIMEOUT;
  _rxCallbackPtr = NULL;
  _rxData = NULL;
  _returnCode = 0;
 }
 
+/*
 void ZBeeStack::setReceivePacketTimeout(long timeout){
   _readTimeout = timeout;
 }
+*/
 
 bool ZBeeStack::setNodeId(const char* id){
   int len = strlen(id);
@@ -1124,91 +1129,97 @@ ZBRxResponse* ZBeeStack::getRxData(){
  *          via XBee
  -----------------------------------------*/
 int ZBeeStack::packetHandle(){
-    while(true){
-        if (_respWaitStat == ZB_WAIT_NORESP){
-            if (_sendReqStat == ZB_SEND_REQ_NO && !_xbee.readApiFrame(_readTimeout)){
-                return PACKET_ERROR_NODATA;
-            }
-        }else{
-            if (!_xbee.readApiFrame(_readTimeout)){
+
+    if (_respWaitStat == ZB_WAIT_NORESP){
+        if(!_xbee.readApiFrame(PACKET_TIMEOUT)){
+            if (_sendReqStat == ZB_SEND_REQ_NO ){
                 return PACKET_ERROR_NODATA;
             }
         }
+    }else{
+        if (!_xbee.readApiFrame(PACKET_TIME_OUT_RESP)){
+            return PACKET_ERROR_NODATA;
+        }
+    }
 
-        switch(_xbee.getResponse().getApiId()){
-        case ZB_RX_RESPONSE:
-            if (_respWaitStat == ZB_WAIT_NORESP || _respWaitStat == ZB_WAIT_RX_RESP) {
-                _xbee.getResponse().getZBRxResponse(_rxResp);
-                if (_rxResp.isError()){           // received packet is not collect
-                    return PACKET_ERROR_RESPONSE;
-                }else{    //  Copy Data
-                    for ( int i = 0; i < _rxResp.getFrameDataLength(); i++){
-                        _rxDataBuf[i] = _rxResp.getFrameData()[i];
-                    }
-                    _rxResp.setFrameData(_rxDataBuf);
-                    _rxData = &_rxResp;
-                    _rxDataReady = true;
+    switch(_xbee.getResponse().getApiId()){
+    case ZB_RX_RESPONSE:
+        if (_respWaitStat == ZB_WAIT_NORESP || _respWaitStat == ZB_WAIT_RX_RESP) {
+            _xbee.getResponse().getZBRxResponse(_rxResp);
+            if (_rxResp.isError()){           // received packet is not collect
+                return PACKET_ERROR_RESPONSE;
+            }else{    //  Copy Data
+                for ( int i = 0; i < _rxResp.getFrameDataLength(); i++){
+                    _rxDataBuf[i] = _rxResp.getFrameData()[i];
                 }
-            }
-            break;
-
-        case AT_COMMAND_RESPONSE:
-            if (_respWaitStat == ZB_WAIT_AT_RESP ) {
-               _xbee.getResponse().getAtCommandResponse(_atResp);
-               if ((_atResp.getFrameId() == _atRequest.getFrameId())
-                    && _atResp.getCommand()[0] == _atRequest.getCommand()[0]
-                    && _atResp.getCommand()[1] == _atRequest.getCommand()[1] ){
-                   if (_atResp.isOk()){
-                       _respWaitStat = ZB_WAIT_NORESP;
-                       return PACKET_CORRECT;
-                   }else{
-                       _respWaitStat = ZB_WAIT_NORESP;
-                       return PACKET_ERROR_RESPONSE;
-                   }
-                }   // FrameId or Command error
-             }
-             break;
-
-        default:
-            break;
-        }
-
-        /* ============= Send Request  ============== */
-        if (_respWaitStat == ZB_WAIT_NORESP) {
-            switch (_sendReqStat) {
-            case ZB_SEND_REQ_NO:
-                if ( _rxDataReady && (_rxCallbackPtr != NULL)){
-                    _rxCallbackPtr(getRxData(), &_returnCode);
-                    _rxDataReady = false;
-                    return _returnCode;
-                }
-                return PACKET_ERROR_NODATA;
-                break;
-
-            case ZB_SEND_REQ_TX:
-                _xbee.send(_txRequest);
-                return PACKET_CORRECT;
-                break;
-
-            case ZB_SEND_REQ_AT:
-                _respWaitStat = ZB_WAIT_AT_RESP;
-                _sendReqStat = ZB_SEND_REQ_NO;
-                _xbee.send(_atRequest);
-                break;
-
-            default:
-                return PACKET_ERROR_UNKOWN;
-                break;
+                _rxResp.setFrameData(_rxDataBuf);
+                _rxData = &_rxResp;
+                _rxDataReady = true;
             }
         }
+        break;
 
+    case AT_COMMAND_RESPONSE:
+        if (_respWaitStat == ZB_WAIT_AT_RESP ) {
+           _xbee.getResponse().getAtCommandResponse(_atResp);
+           if ((_atResp.getFrameId() == _atRequest.getFrameId())
+                && _atResp.getCommand()[0] == _atRequest.getCommand()[0]
+                && _atResp.getCommand()[1] == _atRequest.getCommand()[1] ){
+               if (_atResp.isOk()){
+                   _respWaitStat = ZB_WAIT_NORESP;
+                   return PACKET_CORRECT;
+               }else{
+                   _respWaitStat = ZB_WAIT_NORESP;
+                   return PACKET_ERROR_RESPONSE;
+               }
+            }   // FrameId or Command error
+         }
+         break;
+
+    default:
+        break;
+    }
+
+    /* ===== Resp Callback or, Send Packet  ============== */
+    if (_respWaitStat == ZB_WAIT_RX_RESP) {
         if (_rxDataReady && (_rxCallbackPtr != NULL)){
             _rxCallbackPtr(getRxData(), &_returnCode);
             _rxDataReady = false;
+            return _returnCode;
         }
+        return PACKET_ERROR_NODATA;
+    }else{
+        switch (_sendReqStat) {
+        case ZB_SEND_REQ_NO:
+            if ( _rxDataReady && (_rxCallbackPtr != NULL)){
+                _rxCallbackPtr(getRxData(), &_returnCode);
+                _rxDataReady = false;
+                return _returnCode;
+            }
+            return PACKET_ERROR_NODATA;
+            break;
 
+        case ZB_SEND_REQ_TX:
+            if ( _rxDataReady && (_rxCallbackPtr != NULL)){
+                _rxCallbackPtr(getRxData(), &_returnCode);
+                _rxDataReady = false;
+            }
+            _xbee.send(_txRequest);
+            return PACKET_CORRECT;
+            break;
+
+        case ZB_SEND_REQ_AT:
+            _respWaitStat = ZB_WAIT_AT_RESP;
+            _sendReqStat = ZB_SEND_REQ_NO;
+            _xbee.send(_atRequest);
+            break;
+
+        default:
+            return PACKET_ERROR_UNKOWN;
+            break;
+        }
     }
-    return -1;  // for compiler
+    return PACKET_ERROR_NODATA;
 }
 
 
