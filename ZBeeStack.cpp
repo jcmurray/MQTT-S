@@ -816,7 +816,7 @@ bool XTimer::isTimeUp(uint32_t msec){
         gettimeofday(&curTime, NULL);
         secs  = (curTime.tv_sec  - _startTime.tv_sec) * 1000;
         usecs = (curTime.tv_usec - _startTime.tv_usec) / 1000.0;
-        return ((uint32_t)(secs + usecs) > msec);
+        return ((secs + usecs) > (long)msec);
     }
 }
 
