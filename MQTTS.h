@@ -59,8 +59,7 @@
                               /* [sec] */
 #define MQTTS_DEFAULT_KEEPALIVE  900
 #define MQTTS_TIME_SEARCHGW        3
-#define MQTTS_TIME_RESPONCE        3
-#define MQTTS_TIME_RETRY           3
+#define MQTTS_TIME_RETRY          10
 #define MQTTS_TIME_WAIT            3
 
 
