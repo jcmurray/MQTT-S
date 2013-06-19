@@ -24,9 +24,9 @@
  * THE SOFTWARE.
  *
  *
- *  Created on: 2013/06/17
+ *  Created on: 2013/06/19
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  *
  */
 
@@ -75,16 +75,17 @@ public:
     void     recvGwInfo(MqttsGwInfo* msg);
     void     setLastSendTime();
     void     recvAdvertise(MqttsAdvertise* msg);
-    void     setKeepAlive(long msec);
-    long  getKeepAlive();
+    void     setKeepAlive(uint16_t sec);
+    uint16_t  getKeepAlive();
     void     recvPingResp();
+
 private:
     uint8_t        _status;  //  0:init 1:searching 2:find 3:connected  4:disconnect 5:lost
     XBeeAddress64  _addr64;
     uint16_t       _addr16;
     uint8_t        _gwId;
-    long       _keepAliveDuration;// PINGREQ interval
-    long       _advertiseDuration;
+    uint16_t       _keepAliveDuration;// PINGREQ interval
+    uint16_t       _advertiseDuration;
 
     XTimer          _keepAliveTimer;
     XTimer          _advertiseTimer;
@@ -101,31 +102,18 @@ public:
     void begin(long baudrate);
   #else
     void begin(char* device, unsigned int bauderate);  /* MBED & LINUX */
-
   #endif
     Topics* getTopics();
-    void setKeepAlive(long msec);
+    bool init(const char* clientIdName);
+    void setKeepAlive(uint16_t sec);
     void setWillTopic(MQString* topic);
     void setWillMessage(MQString* msg);
     void setQos(uint8_t level);
     void setRetain(bool retain);
     void setClean(bool clean);
     void setRetryMax(uint8_t cnt);
-    void setMsgRequestStatus(uint8_t stat);
-    void clearMsgRequest();
-    uint8_t getMsgRequestType();
-    uint8_t getMsgRequestStatus();
-    uint8_t getMsgRequestCount();
-    XBeeAddress64& getRxRemoteAddress64();
-    uint16_t getRxRemoteAddress16();
     MQString* getClientId();
-    uint16_t getNextMsgId();
-    bool isGwConnected();
-    void runConnect();
-    void run();
-    void runLoop();
 
-    //void setClientId(MQString* clientId);
     int  connect();
     int  publish(MQString* topic, const char* data, int dataLength);
     int  publish(uint16_t predifinedId,  const char* data, int dataLength);
@@ -135,25 +123,39 @@ public:
     int  unsubscribe(MQString* topic);
     int  unsubscribe(uint16_t predefinedId);
     int  disconnect(uint16_t duration = 0);
-    bool init(const char* clientIdName);
-    int  execMsgRequest();
+
+    void runConnect();
+    int  run();
+
     void recieveMessageHandler(ZBRxResponse* msg, int* returnCode);
     void publishHdl(MqttsPublish* msg);
     void createTopic(MQString* topic, TopicCallback callback);
+    uint16_t getRxRemoteAddress16();
+    XBeeAddress64& getRxRemoteAddress64();
+    uint8_t getMsgRequestType();
+    uint8_t getMsgRequestStatus();
+    uint8_t getMsgRequestCount();
+    void   setMsgRequestStatus(uint8_t stat);
+    bool   isGwConnected();
+    void   clearMsgRequest();
+    int    execMsgRequest();
 
 private:
+    int    requestSendMsg(MqttsMessage* msg);
+    int    requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
+    int    broadcast(uint16_t packetReadTimeout);
+    int    unicast(uint16_t packetReadTimeout);
+
     int  searchGw(uint8_t radius);
     int  pingReq(MQString* clietnId);
     int  pingResp();
     int  willTopic();
     int  willMsg();
     int  pubAck(uint16_t topicId, uint16_t msgId, uint8_t rc);
-    int  requestSendMsg(MqttsMessage* msg);
-    int  requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
-    int  broadcast(uint16_t packetReadTimeout);
-    int  unicast(uint16_t packetReadTimeout);
-    void delayTime(long baseTime);
+
+    void delayTime(uint16_t baseTime);
     void copyMsg(MqttsMessage* msg, ZBRxResponse* recvMsg);
+    uint16_t getNextMsgId();
 
     ZBeeStack*       _zbee;
     SerialPort*      _sp;
@@ -170,7 +172,6 @@ private:
     uint8_t          _nRetry;
     uint8_t          _nRetryCnt;
     uint16_t         _tRetry;
-    uint16_t         _tRetryMsec;
     MQString*         _willTopic;
     MQString*         _willMessage;
     uint16_t         _msgId;
