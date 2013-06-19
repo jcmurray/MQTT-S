@@ -25,9 +25,9 @@
  * THE SOFTWARE.*
  *
  * 
- *  Created on: 2013/06/17
+ *  Created on: 2013/06/19
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  *
  */
 #ifdef ARDUINO
@@ -78,10 +78,10 @@ static MqttsClient*  theMqtts;
  ======================================*/
 GatewayHandller::GatewayHandller(){
     _gwId = 0;
-        _status = 0;
-        _keepAliveDuration = 0;
-        _advertiseDuration = 0;
-        _addr16 = 0;
+    _status = 0;
+    _keepAliveDuration = MQTTS_DEFAULT_KEEPALIVE;
+    _advertiseDuration = MQTTS_DEFAULT_KEEPALIVE;
+    _addr16 = 0;
 }
 
 bool GatewayHandller::isConnected(){
@@ -101,7 +101,7 @@ bool GatewayHandller::isFound(){
 }
 
 bool GatewayHandller::isLost(){
-    if ( _advertiseTimer.isTimeUp(_advertiseDuration)){
+    if ( _advertiseTimer.isTimeUp(_advertiseDuration * 1000)){
         _status = MQTTS_GW_LOST;
         return true;
     }else{
@@ -114,7 +114,7 @@ bool GatewayHandller::isInit(){
 }
 
 bool GatewayHandller::isPingRequired(){
-    return (_keepAliveTimer.isTimeUp(_keepAliveDuration) && isConnected());
+    return (_keepAliveTimer.isTimeUp(_keepAliveDuration * 1000) && isConnected());
 }
 
 XBeeAddress64* GatewayHandller::getAddress64(){
@@ -149,19 +149,21 @@ void GatewayHandller::setLastSendTime(){
 }
 
 void GatewayHandller::recvAdvertise(MqttsAdvertise* adv){
-    if ( adv->getGwId() == _gwId){
+    if ( adv->getGwId() == _gwId || _gwId == 0){
         _advertiseTimer.start();
         _advertiseDuration = adv->getDuration() * 1.5;
         _gwId = adv->getGwId();
+        _addr64 = theMqtts->getRxRemoteAddress64();
+        _addr16 = theMqtts->getRxRemoteAddress16();
     }
     // ToDo  Update list of gateways.  elements are ZBNode
 }
 
-void GatewayHandller::setKeepAlive(long msec){
-        _keepAliveDuration = msec;
+void GatewayHandller::setKeepAlive(uint16_t sec){
+        _keepAliveDuration = sec;
 }
 
-long GatewayHandller::getKeepAlive(){
+uint16_t GatewayHandller::getKeepAlive(){
         return _keepAliveDuration;
 }
 
@@ -186,7 +188,6 @@ MqttsClient::MqttsClient(){
     _clientId = new MQString();
     _clientFlg = 0;
     _nRetry = 3;
-    _tRetryMsec = 10000; // 10 sec
     _nRetryCnt = 0;
     _tRetry = 0;
     _willTopic = _willMessage = NULL;
@@ -235,8 +236,8 @@ Topics* MqttsClient::getTopics(){
     return &_topics;
 }
 
-void MqttsClient::setKeepAlive(long msec){
-    _gwHdl.setKeepAlive(msec);
+void MqttsClient::setKeepAlive(uint16_t sec){
+    _gwHdl.setKeepAlive(sec);
 }
 
 void MqttsClient::setWillTopic(MQString* topic){
@@ -323,13 +324,13 @@ void MqttsClient::createTopic(MQString* topic, TopicCallback callback){
     _topics.setCallback(topic, callback);
 }
 
-void MqttsClient::delayTime(long maxTime){
+void MqttsClient::delayTime(uint16_t maxTime){
 #ifdef ARDUINO
-    srand((unsigned)millis( ));
-    uint32_t tm = rand() % maxTime;
+    srand((uint32_t)millis( ));
+    uint32_t tm = rand() % (maxTime * 1000);
 #else
-    srand((unsigned)time( NULL ));
-    uint32_t tm = (rand() % maxTime) * 1000;
+    srand((uint32_t)time( NULL ));
+    uint32_t tm = (rand() % (maxTime * 1000));
 #endif
     XTimer delayTimer;
     delayTimer.start(tm);
@@ -471,7 +472,7 @@ int MqttsClient::broadcast(uint16_t packetReadTimeout){
     while(retry < _nRetry){
         _zbee->bcastData(_sendQ->getMessage(0)->getMsgBuff(),
                          _sendQ->getMessage(0)->getLength());
-        _respTimer.start(packetReadTimeout);
+        _respTimer.start(packetReadTimeout * 1000);
 
         while(!_respTimer.isTimeUp()){
            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_SEARCHGW)|| getMsgRequestStatus() == MQTTS_MSG_COMPLETE){
@@ -497,7 +498,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
         _zbee->sendData(_gwHdl.getAddress64(), _gwHdl.getAddress16(),
                         _sendQ->getMessage(0)->getMsgBuff(),
                         _sendQ->getMessage(0)->getLength(), 0);
-        _respTimer.start(packetReadTimeout);
+        _respTimer.start(packetReadTimeout * 1000);
 
         while(!_respTimer.isTimeUp()){
             if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ ) ||
@@ -512,9 +513,9 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
 
             }else if (getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
                 #ifdef ARDUINO
-                  delay(MQTTS_TIME_WAIT);
+                  delay(MQTTS_TIME_WAIT * 1000);
                 #else
-                  usleep(MQTTS_TIME_WAIT * 1000);
+                  usleep(MQTTS_TIME_WAIT * 1000000);
                 #endif
                 _zbee->sendData(_gwHdl.getAddress64(), _gwHdl.getAddress16(),
                                 _sendQ->getMessage(0)->getMsgBuff(),
