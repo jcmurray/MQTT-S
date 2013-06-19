@@ -240,22 +240,22 @@ int MqttsGateway::requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr){
 /*-------------------------------------------------------------------------*/
 int MqttsGateway::execMsgRequest(){
     int rc = MQTTS_ERR_NO_ERROR;
+
     if (_sendQ->getStatus(0) == MQTTS_MSG_REQUEST || _sendQ->getStatus(0) == MQTTS_MSG_RESEND_REQ){
         if (_sendQ->getMessage(0)->getType() == MQTTS_TYPE_GWINFO){
-            rc = broadcast(MQTTS_TIME_RESPONCE);
+            rc = broadcast(MQTTS_TIME_RETRY);
         }else{
-            rc = unicast(MQTTS_TIME_RESPONCE);
+            rc = unicast(MQTTS_TIME_RETRY);
         }
     }
 
-    if (_advertiseTimer.isTimeUp((uint32_t)_duration * 1000)){
+    _zbee->readPacket();  //  Just read packet, No send Request
+
+    if (_advertiseTimer.isTimeUp((uint32_t)(_duration * 1000))){
         advertise(_duration, _gwId);
         _advertiseTimer.start();
-        broadcast(MQTTS_TIME_RESPONCE);
-    }
-
-    if (_sendQ->getStatus(0) != MQTTS_MSG_REQUEST && _sendQ->getStatus(0) != MQTTS_MSG_RESEND_REQ){
-        _zbee->readPacket();  //  Just read packet, No send Request
+        printf("\n\n************************ADVERTISE\n\n"); //////////////////
+        broadcast(MQTTS_TIME_RETRY);
     }
     return rc;
 }
@@ -378,7 +378,7 @@ int  MqttsGateway::advertise(uint16_t duration, uint8_t gwId){
     MqttsAdvertise mqttsMsg = MqttsAdvertise();
     mqttsMsg.setDuration(duration);
     mqttsMsg.setGwId(gwId);
-    return requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
+    return requestSendMsg((MqttsMessage*)&mqttsMsg);
 }
 
 /*--------- PINGRESP ------*/
