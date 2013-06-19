@@ -292,14 +292,6 @@ uint16_t MqttsClient::getNextMsgId(){
     return _msgId;
 }
 
-bool MqttsClient::isGwConnected(){
-    return _gwHdl.isConnected();
-}
-
-void MqttsClient::clearMsgRequest(){
-    _sendQ->deleteRequest(0);
-}
-
 uint8_t MqttsClient::getMsgRequestType(){
     if (_sendQ->getMessage(0)){
         return _sendQ->getMessage(0)->getType();
@@ -343,42 +335,14 @@ void MqttsClient::copyMsg(MqttsMessage* msg, ZBRxResponse* recvMsg){
     memcpy(msg->getMsgBuff(), recvMsg->getData(), recvMsg->getData()[0]);
 }
 
-void MqttsClient::run(){
-    while(true){
-        int rc = execMsgRequest();
-        if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) &&
-            getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-            clearMsgRequest();
-        }else{
-            break;
-        }
-    }
+bool MqttsClient::isGwConnected(){
+    return _gwHdl.isConnected();
 }
 
-void MqttsClient::runConnect(){
-    while(true){
-        int rc = execMsgRequest();
-        if (isGwConnected()){
-            break;
-        }else if ( rc != MQTTS_ERR_NO_ERROR){
-            if ( getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-                setMsgRequestStatus(MQTTS_MSG_REQUEST);
-            }else{
-                clearMsgRequest();
-            }
-        }
-    }
+void MqttsClient::clearMsgRequest(){
+    _sendQ->deleteRequest(0);
 }
 
-void MqttsClient::runLoop(){
-    while(true){
-        int rc = execMsgRequest();
-        if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) &&
-                getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                clearMsgRequest();
-        }
-    }
-}
 /*========================================================
     Send a MQTT-S Message (add the send request)
 ==========================================================*/
@@ -404,6 +368,41 @@ int MqttsClient::requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr){
             _sendQ->setStatus(0, MQTTS_MSG_REQUEST);
         }
         return MQTTS_ERR_NO_ERROR;
+    }
+}
+
+/*========================================================
+  Execute sending a MQTT-S Message
+==========================================================*/
+
+/*-------------  send Message once -----------------*/
+int MqttsClient::run(){
+    int rc;
+
+    while(true){
+        rc = execMsgRequest();
+        if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) &&
+            getMsgRequestStatus() != MQTTS_MSG_REQUEST){
+            _sendQ->deleteRequest(0);
+        }else{
+            break;
+        }
+    }
+    return rc;
+}
+/*-------------  execute connect operation ----------*/
+void MqttsClient::runConnect(){
+    while(true){
+        int rc = execMsgRequest();
+        if (_gwHdl.isConnected()){
+            break;
+        }else if ( rc != MQTTS_ERR_NO_ERROR){
+            if ( getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
+                setMsgRequestStatus(MQTTS_MSG_REQUEST);
+            }else{
+                _sendQ->deleteRequest(0);
+            }
+        }
     }
 }
 
@@ -438,7 +437,7 @@ int MqttsClient::execMsgRequest(){
            if (getMsgRequestType() == MQTTS_TYPE_CONNECT ||
                getMsgRequestType() == MQTTS_TYPE_WILLTOPIC ||
                getMsgRequestType() == MQTTS_TYPE_WILLMSG){
-               rc = unicast(MQTTS_TIME_RESPONCE);
+               rc = unicast(MQTTS_TIME_RETRY);
                if (rc == 0 && _qos == 0){
                    _gwHdl.setStatus(MQTTS_GW_CONNECTED);
                }
@@ -447,14 +446,14 @@ int MqttsClient::execMsgRequest(){
         }
         if (_gwHdl.isConnected()){
             /*-------- Send PUBLISH,SUBSCRIBE,REGISTER,DISCONNECT,PUBACK -------*/
-            return unicast(MQTTS_TIME_RESPONCE);
+            return unicast(MQTTS_TIME_RETRY);
         }
         return MQTTS_ERR_NOT_CONNECTED;
     }else{
         if (_gwHdl.isPingRequired()){
             /*-------- Send PINGREQ -----------*/
             pingReq(_clientId);
-            if (unicast(MQTTS_TIME_RESPONCE)){
+            if (unicast(MQTTS_TIME_RETRY)){
                 _gwHdl.setStatus(MQTTS_GW_LOST);
                 return MQTTS_ERR_PINGRESP_TIMEOUT;
             }
@@ -476,7 +475,7 @@ int MqttsClient::broadcast(uint16_t packetReadTimeout){
 
         while(!_respTimer.isTimeUp()){
            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_SEARCHGW)|| getMsgRequestStatus() == MQTTS_MSG_COMPLETE){
-               clearMsgRequest();
+               _sendQ->deleteRequest(0);
                return MQTTS_ERR_NO_ERROR;
            }else if (getMsgRequestStatus() == MQTTS_MSG_REQUEST){
                setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
@@ -504,7 +503,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
             if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ ) ||
                               getMsgRequestType() == MQTTS_TYPE_PUBACK   ||
                               getMsgRequestStatus() == MQTTS_MSG_COMPLETE ){
-                clearMsgRequest();
+                _sendQ->deleteRequest(0);
                 _gwHdl.setLastSendTime();
                 return MQTTS_ERR_NO_ERROR;
 
@@ -736,15 +735,15 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
         }
           #ifdef DEBUG_MQTTS
               #ifdef ARDUINO
-                debug.print("\nPUBACK ReturnCode=");
+                debug.print("\nPUBACK received ReturnCode=");
                 debug.println(mqMsg.getReturnCode(),HEX);
                 debug.println();
               #endif
               #ifdef MBED
-                  debug.fprintf(stdout,"\nPUBACK ReturnCode=%d\n", mqMsg.getReturnCode());
+                  debug.fprintf(stdout,"\nPUBACK received ReturnCode=%d\n", mqMsg.getReturnCode());
               #endif
               #ifdef LINUX
-                  fprintf(stdout,"\nPUBACK ReturnCode=%d\n", mqMsg.getReturnCode());
+                  fprintf(stdout,"\nPUBACK received ReturnCode=%d\n", mqMsg.getReturnCode());
               #endif
           #endif /* DEBUG_MQTTS */
 
