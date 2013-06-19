@@ -25,6 +25,8 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT  
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
+ * You should have received a copy of the GNU General Public License
+ * If not, see <http://www.gnu.org/licenses/>.
  *
  * 
  *  Created on: 2013/06/17
@@ -152,11 +154,11 @@ typedef  uint8_t ZBNodeType;
  *   Packet Read Constants
  */
 #ifdef ARDUINO
-#define PACKET_TIMEOUT 100
+#define PACKET_TIMEOUT         100
 #define PACKET_TIME_OUT_RESP  1000
 #else
+#define PACKET_TIMEOUT          50
 #define PACKET_TIME_OUT_RESP  1000
-#define PACKET_TIMEOUT 100
 #endif
 
 /*
@@ -458,7 +460,7 @@ public:
   XBee();
   //void readPacket(void);
   void readApiFrame(void);
-  bool readApiFrame(long timeoutMillsec);
+  bool readApiFrame(uint16_t timeoutMillsec);
   void getResponse(XBeeResponse &response);
   uint8_t getModemStatus();
   void setModemStatus(uint8_t);
@@ -547,7 +549,7 @@ public:
   void    setSerialPort(SerialPort *serialPort);
   int     readPacket();
   int     readResp();
-  void    setReceivePacketTimeout(long timeout);
+  //void    setReceivePacketTimeout(long timeout);
   XBeeAddress64& getRxRemoteAddress64();
   uint16_t       getRxRemoteAddress16();
   const char*         getNodeId();
@@ -579,7 +581,7 @@ private:
   uint8_t _respWaitStat;  // 0:no wait  1:AtResp   2:TxResp
   uint8_t _sendReqStat;   // 0:no req   1:AtReq    2:TxReq
   bool   _rxDataReady;
-  long   _readTimeout;
+  //long   _readTimeout;
 
   void (*_rxCallbackPtr)(ZBRxResponse* data, int* returnCode);
 };
