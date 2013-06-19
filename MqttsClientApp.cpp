@@ -37,12 +37,13 @@
   #include "MqttsClient.h"
 #endif
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <iostream>
-
+#if defined(LINUX) || defined(MBED)
+  #include <stdio.h>
+  #include <unistd.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <iostream>
+#endif
 
 MQString* willtopic = new MQString("willtopic");
 MQString* willmsg   = new MQString("willmsg");
@@ -54,8 +55,6 @@ int fnTp1(MqttsPublish* msg){
 }
 
 
-
-
 int main(int argc, char **argv){
 
     MqttsClient mqtts = MqttsClient();
@@ -65,12 +64,13 @@ int main(int argc, char **argv){
     mqtts.setQos(1);
     //mqtts.setWillTopic(willtopic);
     //mqtts.setWillMessage(willmsg);
-    mqtts.setKeepAlive(60000);
+    mqtts.setKeepAlive(60);
 
 
     fprintf(stdout,"Connect\n");
     mqtts.connect();
-    mqtts.runConnect();
+    //mqtts.runConnect();
+    mqtts.run();
 
     MQString *topic0 = new MQString("a/bcd/ef");
 
@@ -93,12 +93,13 @@ int main(int argc, char **argv){
     */
 
     while(true){
-      int rc = mqtts.publish(topic0,"123456",6);
-      mqtts.run();
-      fprintf(stdout,"%d\n", rc);
+      mqtts.publish(topic0,"123456",6);
+      if ( mqtts.run() == MQTTS_ERR_RETRY_OVER){
+          fprintf(stdout,"Retry Over\n");
+          mqtts.clearMsgRequest();
+      }
     }
 
-    mqtts.runLoop();
 
     fprintf(stdout,"__end__\n");
 
