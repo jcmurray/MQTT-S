@@ -27,7 +27,7 @@
  *
  *  Created on: 2013/06/19
  *  Author:     Tomoaki YAMAGUCHI
- *  Version:    1.0.1
+ *  Version:    1.0.2
  *
  */
 #ifndef ARDUINO
@@ -41,32 +41,32 @@
   #include <ZBeeStack.h>
 
   #ifdef DEBUG_ZBEESTACK
-  	#include <SoftwareSerial.h>
-	extern SoftwareSerial debug;
+        #include <SoftwareSerial.h>
+        extern SoftwareSerial debug;
   #endif
 
 #endif  /* ARDUINO */
 
 #ifdef MBED
-	#include "mbed.h"
-	#include "ZBeeStack.h"
+        #include "mbed.h"
+        #include "ZBeeStack.h"
 
     #ifdef DEBUG_ZBEESTACK
-		    extern Serial debug;
+                    extern Serial debug;
         #endif
 #endif /* MBED */
 
 #ifdef LINUX
-	#include "ZBeeStack.h"
-	#include <stdio.h>
-	#include <sys/time.h>
-	#include <sys/types.h>
-	#include <sys/stat.h>
-	#include <unistd.h>
-	#include <stdlib.h>
-	#include <string.h>
-	#include <fcntl.h>
-	#include <errno.h>
+        #include "ZBeeStack.h"
+        #include <stdio.h>
+        #include <sys/time.h>
+        #include <sys/types.h>
+        #include <sys/stat.h>
+        #include <unistd.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include <fcntl.h>
+        #include <errno.h>
         #include <termios.h>
 
 #endif /* LINUX */
@@ -654,13 +654,14 @@ bool XBee::readApiFrame(uint16_t timeoutMillsec){
         }else if(getResponse().isError()){
               #ifdef DEBUG_ZBEESTACK
                   #ifdef ARDUINO
-                      debug.println("");
+                     debug.print("  <==== Packet Error Code = ");
+                     debug.print(getResponse().getErrorCode(), DEC);
                   #endif
-                      #ifdef MBED
-                      debug.fprintf(stdout,"\n" );
-                      #endif
-                      #ifdef LINUX
-                      fprintf(stdout,"\n" );
+                     #ifdef MBED
+                     debug.fprintf(stdout, "  <==== Packet Error Code = %d\n",getResponse().getErrorCode() );
+                     #endif
+                     #ifdef LINUX
+                     fprintf(stdout,"  <==== Packet Error Code = %d\n",getResponse().getErrorCode() );
                   #endif
               #endif
             return false;
@@ -714,10 +715,10 @@ void XBee::send(XBeeRequest &request){
     #ifdef ARDUINO
         debug.println("");
     #endif
-	#ifdef MBED
+        #ifdef MBED
         debug.fprintf(stdout,"\n" );
-	#endif
-	#ifdef LINUX
+        #endif
+        #ifdef LINUX
         fprintf(stdout,"\n" );
     #endif
 #endif
@@ -848,7 +849,7 @@ bool SerialPort::send(unsigned char b){
       return false;
   }else{
 #ifdef DEBUG_ZBEESTACK
-	debug.print(" s:0x");
+        debug.print(" s:0x");
         debug.print(b,HEX);
 #endif
       return true;
@@ -859,7 +860,7 @@ bool SerialPort::recv(unsigned char* buf){
   if ( _serial->available() > 0 ){
     buf[0] = _serial->read();
 #ifdef DEBUG_ZBEESTACK
-	debug.print(" r:0x");
+        debug.print(" r:0x");
         debug.print(buf[0],HEX);
 #endif
     return true;
@@ -890,7 +891,7 @@ void SerialPort::begin(long baudrate){
 bool SerialPort::send(unsigned char b){
   _serial->putc(b);
 #ifdef DEBUG_ZBEESTACK
-	debug.fprintf(stdout, " S:0x%x", b);
+        debug.fprintf(stdout, " S:0x%x", b);
 #endif
       return true;
   }
