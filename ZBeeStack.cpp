@@ -25,9 +25,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  *
- *  Created on: 2013/06/19
+ *  Created on: 2013/06/21
  *  Author:     Tomoaki YAMAGUCHI
- *  Version:    1.0.2
+ *  Version:    1.0.3
  *
  */
 #ifndef ARDUINO
@@ -72,6 +72,20 @@
 #endif /* LINUX */
 
 using namespace std;
+
+/*=====================================
+        Global functions
+ ======================================*/
+
+uint16_t getLong(uint8_t* pos){
+  uint16_t val = ((uint16_t)*pos++ << 8);
+  return val += *pos;
+}
+
+void setLong(uint8_t* pos, uint16_t val){
+    *pos++ = (val >> 8) & 0xff;
+    *pos = val &0xff;
+}
 
 /*=========================================
              Class XBeeAddress64
@@ -561,6 +575,10 @@ XBeeResponse& XBee::getResponse(){
 
 void XBee::readApiFrame(){
 
+  if (_response.isAvailable() || _response.isError()){
+      resetResponse();
+  }
+
   while(read(_b )){
       // Check Start Byte
       if( _pos > 0 && _b[0] == START_BYTE){
@@ -598,6 +616,18 @@ void XBee::readApiFrame(){
         case 2:
           _response.setLsbLength(_b[0]);
           _pos++;
+              #ifdef DEBUG_ZBEESTACK
+                  #ifdef ARDUINO
+                      debug.print(" ===> Start: length=");
+                      debug.println(_response.getPacketLength(),DEC);
+                  #endif
+                      #ifdef MBED
+                      debug.fprintf(stdout, " ===> Start:  length=%d\n", _response.getPacketLength() );
+                      #endif
+                      #ifdef LINUX
+                      fprintf(stdout, " ===> Start:  length=%d\n", _response.getPacketLength() );
+                  #endif
+              #endif
           break;
         case 3:
           _response.setApiId(_b[0]);
@@ -605,7 +635,7 @@ void XBee::readApiFrame(){
           break;
         default:
           if(_pos > MAX_FRAME_DATA_SIZE){
-              _response.setErrorCode(UNEXPECTED_START_BYTE);
+              _response.setErrorCode(PACKET_EXCEEDS_BYTE_ARRAY_LENGTH);
               return;
           }else if(_pos == (_response.getPacketLength() + 3)){  // 3 = 2(packet len) + 1(checksum)
               if((_checksumTotal & 0xff) == 0xff){
@@ -631,7 +661,6 @@ void XBee::readApiFrame(){
 
 bool XBee::readApiFrame(uint16_t timeoutMillsec){
 
-    resetResponse();
     _tm.start((uint32_t)timeoutMillsec);
 
     while(!_tm.isTimeUp()){
@@ -641,27 +670,28 @@ bool XBee::readApiFrame(uint16_t timeoutMillsec){
         if(getResponse().isAvailable()){
               #ifdef DEBUG_ZBEESTACK
                   #ifdef ARDUINO
-                      debug.println("");
+                      debug.println();
+                      debug.println(" Packet end");
                   #endif
                       #ifdef MBED
-                      debug.fprintf(stdout,"\n" );
+                      debug.fprintf(stdout,"\n Packet end\n" );
                       #endif
                       #ifdef LINUX
-                      fprintf(stdout,"\n" );
+                      fprintf(stdout,"\n Packet end\n" );
                   #endif
               #endif
             return true;
         }else if(getResponse().isError()){
               #ifdef DEBUG_ZBEESTACK
                   #ifdef ARDUINO
-                     debug.print("  <==== Packet Error Code = ");
+                     debug.print("  <== Packet Error Code = ");
                      debug.print(getResponse().getErrorCode(), DEC);
                   #endif
                      #ifdef MBED
-                     debug.fprintf(stdout, "  <==== Packet Error Code = %d\n",getResponse().getErrorCode() );
+                     debug.fprintf(stdout, "  <== Packet Error Code = %d\n",getResponse().getErrorCode() );
                      #endif
                      #ifdef LINUX
-                     fprintf(stdout,"  <==== Packet Error Code = %d\n",getResponse().getErrorCode() );
+                     fprintf(stdout,"  <== Packet Error Code = %d\n",getResponse().getErrorCode() );
                   #endif
               #endif
             return false;
