@@ -23,9 +23,9 @@
  * THE SOFTWARE.
  *
  *
- *  Created on: 2013/06/08
+ *  Created on: 2013/06/21
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.3.0
+ *     Version: 1.0.1
  *
  */
 
@@ -71,19 +71,8 @@
 
 using namespace std;
 
-/*=====================================
-        Global functions
- ======================================*/
-
-uint16_t getLong(uint8_t* pos){
-  uint16_t val = ((uint16_t)*pos++ << 8);
-  return val += *pos;
-}
-
-void setLong(uint8_t* pos, uint16_t val){
-    *pos++ = (val >> 8) & 0xff;
-    *pos = val &0xff;
-}
+extern uint16_t getLong(uint8_t* pos);
+extern void setLong(uint8_t* pos, uint16_t val);
 
 /*=====================================
         Class MQString
