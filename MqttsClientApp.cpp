@@ -33,8 +33,8 @@
   #include <MQTTS_Defines.h>
   #include <MqttsClient.h>
 #else
-  #include "MQTTS_Defines.h"
-  #include "MqttsClient.h"
+  #include "mqttslib/MQTTS_Defines.h"
+  #include "mqttslib/MqttsClient.h"
 #endif
 
 #if defined(LINUX) || defined(MBED)
