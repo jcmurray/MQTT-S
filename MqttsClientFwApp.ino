@@ -29,7 +29,6 @@
  *
  */
  
-
 #include <MQTTS_Defines.h>
 #include <MqttsClientAppFw4Arduino.h>
 
@@ -45,25 +44,57 @@
     MQString* tp1 = new MQString("abc/def/g");
     MQString* tp2 = new MQString("efg/hi/j");
     
-       int  cb1(MqttsPublish* msg){
+    MQString willtopic = MQString("will/topic");
+    MQString willmsg = MQString("willMessage");
+    
+    int  cb1(MqttsPublish* msg){
           #ifdef MQTTS_DEBUG
           debug.println("exec callback");
           #endif
           return 0;
     }
     
+    int pubCallback1(MqttsPublish* msg){
+  Serial.println("pubCallback1 was executed");
+  return 0;
+}
+
+// Callback for WDT
+void wdtFunc0(){
+  debug.println("wdtFunc0()");
+  app.publish(tp1, "12345", 5);
+}
+
+// Callbacks for WDT
+void wdtFunc1(){
+  debug.println("wdtFunc1()");
+  app.publish(tp2,"67890", 5);
+}
+
+// Callback for INT0
+void intFunc(){
+  
+  
+}
     
 void setup(){
   #if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK) 
   debug.begin(19200);
 #endif
-
+  // Register Callback for INT0
+  app.registerInt0Callback(intFunc);
+  
+  // Register Callbacks for WDT (Sec、callback)
+  app.registerWdtCallback(5,wdtFunc0);
+  app.registerWdtCallback(11,wdtFunc1);
+  
   app.begin(38400);
   app.init("Node-02");
     app.setQos(1);
-    //app.setWillTopic(willtopic);
-    //app.setWillMessage(willmsg);
-    app.setKeepAlive(300000);
+    
+    app.setWillTopic(&willtopic);
+    app.setWillMessage(&willmsg);
+    app.setKeepAlive(300);
     
 }
 
@@ -79,28 +110,11 @@ void loop(){
     app.registerTopic(tp2);
     app.run();
 
-    /*
-    app.disconnect();
-    app.run();
-    */
-
-    /*
-    app.willTopic();
-    app.run();
-     */
-
     MQString *topic = new MQString("a/bcd/ef");
 
     app.subscribe(topic, cb1);
     app.run();
-
-    app.publish(topic, "abcde", 5);
-    app.run();
-       
-    /*
-    app.unsubscribe(topic);
-    app.run();
-    */
+        
     app.startWdt();
     app.runLoop();
         
