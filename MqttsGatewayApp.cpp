@@ -33,8 +33,8 @@
   #include <MQTTS_Defines.h>
   #include <MqttsGateway.h>
 #else
-  #include "MQTTS_Defines.h"
-  #include "MqttsGateway.h"
+  #include "mqttslib/MQTTS_Defines.h"
+  #include "mqttslib/MqttsGateway.h"
 #endif
 
 #include <stdio.h>
@@ -62,7 +62,7 @@ int main(int argc, char **argv){
              gw.setLoopCtrl(0);
              break;
          }else if (rc){
-             fprintf(stdout,"Rc = %d, TYPE = 0x%x\n", rc, gw.getMsgRequestType());
+             printf("Rc = %d, TYPE = 0x%x\n", rc, gw.getMsgRequestType());
              if ( gw.getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
                  sleep(5);
                  gw.setMsgRequestStatus(MQTTS_MSG_REQUEST);
@@ -71,21 +71,7 @@ int main(int argc, char **argv){
              }
          }
      }
-     /*
-     MQString *topic = new MQString("a/bcd/ef");
-
-         gw.registerTopic(topic, 16);
-
-         while(true){
-             int rc = gw.execMsgRequest();
-             if (rc == MQTTS_ERR_NO_ERROR && gw.getMsgRequestCount() == 0){
-                 break;
-             }else{
-                 fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, gw.getMsgRequestStatus());
-                     gw.clearMsgRequest();
-             }
-     }
-     */
+     
 
      gw.execMsgRequest();
      printf("send publish\n");
@@ -101,10 +87,10 @@ int main(int argc, char **argv){
           if (rc == MQTTS_ERR_NO_ERROR && gw.getMsgRequestCount() == 0 && gw.getLoopCtrl() == MQTTS_TYPE_PUBACK){
               continue;
           }else if (rc){
-              fprintf(stdout,"Rc = %d, Request status = 0x%x\n", rc, gw.getMsgRequestStatus());
+              printf("Rc = %d, Request status = 0x%x\n", rc, gw.getMsgRequestStatus());
                   gw.clearMsgRequest();
           }
     }
-     fprintf(stdout,"__end__\n");
+
 
 }
