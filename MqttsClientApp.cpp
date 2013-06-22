@@ -62,15 +62,15 @@ int main(int argc, char **argv){
     mqtts.begin(argv[1], B38400);
     mqtts.init("Node-02");
     mqtts.setQos(1);
-    //mqtts.setWillTopic(willtopic);
-    //mqtts.setWillMessage(willmsg);
+    mqtts.setWillTopic(willtopic);
+    mqtts.setWillMessage(willmsg);
     mqtts.setKeepAlive(60);
 
 
-    fprintf(stdout,"Connect\n");
+    printf("Connect\n");
     mqtts.connect();
-    //mqtts.runConnect();
-    mqtts.run();
+    mqtts.runConnect();
+
 
     MQString *topic0 = new MQString("a/bcd/ef");
 
@@ -95,13 +95,9 @@ int main(int argc, char **argv){
     while(true){
       mqtts.publish(topic0,"123456",6);
       if ( mqtts.run() == MQTTS_ERR_RETRY_OVER){
-          fprintf(stdout,"Retry Over\n");
+          printf("Retry Over\n");
           mqtts.clearMsgRequest();
       }
     }
-
-
-    fprintf(stdout,"__end__\n");
-
 
 }
