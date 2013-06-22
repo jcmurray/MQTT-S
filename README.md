@@ -54,36 +54,15 @@ XBee configurations
 How to Build (Requiered source code list)
 -----------
 ####1) Linux Client
-*  MQTTS_Defines.h  
-*  ZBeeStack.h  
-*  ZBeeStack.cpp  
-*  Mqtts.cpp  
-*  Mqtts.h  
-*  MqttsClient.cpp  
-*  MqttsClient.h  
+*  mqttslib    
 *  MqttsClientApp.cpp  
 
 ####2) Linux Gateway
-*  MQTTS_Defines.h
-*  ZBeeStack.h
-*  ZBeeStack.cpp
-*  Mqtts.cpp
-*  Mqtts.h
-*  MqttsGateway.cpp
-*  MqttsGateway.h
+*  mqttslib
 *  MqttsGatewayApp.cpp
   
 ####3) Arduino Client
-_Copy 9 files below into Aruino Librally directory._
-*  MQTTS_Defines.h
-*  ZBeeStack.h
-*  ZBeeStack.cpp
-*  Mqtts.cpp
-*  Mqtts.h
-*  MqttsClient.cpp
-*  MqttsClient.h
-*  MqttsClientAppFwArduino.cpp
-*  MqttsClientAppFwArduino.h
+_Copy mqttslib into Aruino Librally directory._
 
 _Copy this file into Aruino sketch directory._
 *  MqttsClientFwApp.ino
@@ -94,7 +73,15 @@ Module descriptions
 ####1) MqttsClientApp.cpp  
 Client application sample which is used for debug.
 
-####2) MqttsClient.cpp
+####2) MqttsGatewayApp.cpp  
+  Gateway application for debug. 
+  
+####3) MqttsClientFwApp.ino
+  MqttsClient sample application for Arduino. 
+    
+###Modules in mqttslib
+
+####1) MqttsClient.cpp
   MQTT-S Client Engine class. This Class is used by  a application.  
   Usages are shown as follows.
   
@@ -111,14 +98,22 @@ Client application sample which is used for debug.
     mqtts.publish(topic, payload, payload_length); // publish the data, topic is converted into ID automatically.
     mqtts.unsubscribe(topic);  
     mqtts.disconnect();
+
     
-####3) MQTTS.cpp 
+####2) MqttsGateway.cpp
+  Gateway dummy Class for debug. Not real gateway.
+    
+####3) MqttsClientAppFw4Arduino.cpp
+  Application framework for Arduino.
+  Interupt and  watch dog timer are supported.
+      
+####4) MQTTS.cpp 
   MQTT-S messages classes and some classes for client and Gateway.
     
-####4) ZBeeStack.cpp
+####5) ZBeeStack.cpp
   XBee control classes for MQTT-S
     
-####5) Mqtts_Defines.h
+####6) Mqtts_Defines.h
   Default setting is Arduino.  (Both systems are comented out)  
   select the system and uncoment it.
     
@@ -131,19 +126,8 @@ Client application sample which is used for debug.
     #define DEBUG_MQTTS     // show MQTT-S events.     
     #define DEBUG_ZBEESTACK // show serial I/O transactions. 
   
-    
-####6) MqttsGateway.cpp
-  Gateway dummy Class for debug. Not real gateway.
-    
-####7) MqttsGatewayApp.cpp  
-  Gateway application for debug. 
-  
-####8) MqttsClientAppFw4Arduino.cpp
-  Application framework for Arduino.
-  Interupt and  watch dog timer are supported.
-  
-####9) MqttsClientFwApp.ino
-  MqttsClient sample application for Arduino. 
+
+
    
 
   
@@ -158,4 +142,3 @@ Client application sample which is used for debug.
 
 
 [@ty4tw]:                     http://twitter.com/ty4tw
-
