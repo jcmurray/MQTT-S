@@ -77,14 +77,28 @@ using namespace std;
         Global functions
  ======================================*/
 
-uint16_t getLong(uint8_t* pos){
+uint16_t getUint16(uint8_t* pos){
   uint16_t val = ((uint16_t)*pos++ << 8);
   return val += *pos;
 }
 
-void setLong(uint8_t* pos, uint16_t val){
+void setUint16(uint8_t* pos, uint16_t val){
     *pos++ = (val >> 8) & 0xff;
     *pos = val &0xff;
+}
+
+long getLong(uint8_t* pos){
+    long val = (uint32_t(*(pos + 3)) << 24) +
+        (uint32_t(*(pos + 2)) << 16) +
+        (uint32_t(*(pos + 1)) <<  8);
+        return val += *pos;
+}
+
+void setLong(uint8_t* pos, uint32_t val){
+    val = (uint32_t(*(pos + 3)) << 24) +
+        (uint32_t(*(pos + 2)) << 16) +
+        (uint32_t(*(pos + 1)) <<  8) +
+        *pos;
 }
 
 /*=========================================

@@ -40,7 +40,7 @@
   #include <SoftwareSerial.h>
   #include <MQTTS.h>
 
-  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_EMULATION)
+  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
 	extern SoftwareSerial debug;
   #endif
 
@@ -50,7 +50,7 @@
   #include "mbed.h"
   #include "MQTTS.h"
 
-  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_EMULATION)
+  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
 	extern Serial debug;
   #endif
 #endif  /* MBED */
@@ -71,8 +71,9 @@
 
 using namespace std;
 
-extern uint16_t getLong(uint8_t* pos);
-extern void setLong(uint8_t* pos, uint16_t val);
+extern uint16_t getUint16(uint8_t* pos);
+extern void setUint16(uint8_t* pos, uint16_t val);
+
 
 /*=====================================
         Class MQString
@@ -171,13 +172,13 @@ void MQString::writeBuf(uint8_t* buf){
     }else if (_constStr){
         memcpy(buf + 2, _constStr, _length);
     }
-    setLong(buf, _length);
+    setUint16(buf, _length);
 }
 
 void MQString::readBuf(uint8_t* buf){
     _str = NULL;
     _constStr = (const char*)buf + 2;
-    _length = getLong(buf);
+    _length = getUint16(buf);
 }
 
 uint8_t MQString::getChar(long index){
@@ -342,7 +343,7 @@ void MqttsAdvertise::setGwId(uint8_t id){
 
 void MqttsAdvertise::MqttsAdvertise::setDuration(uint16_t duration){
     uint8_t* pos = getBody() + 1;
-    setLong(pos, duration);
+    setUint16(pos, duration);
 }
 
 uint8_t MqttsAdvertise::getGwId(){
@@ -351,7 +352,7 @@ uint8_t MqttsAdvertise::getGwId(){
 
 uint16_t MqttsAdvertise::getDuration(){
   uint8_t* pos = getBody() + 1;
-    return getLong(pos);
+    return getUint16(pos);
 }
 
 /*=====================================
@@ -420,11 +421,11 @@ uint8_t MqttsConnect::getFlags(){
 }
 
 void MqttsConnect::setDuration(uint16_t msec){
-    setLong((uint8_t*)getBody() + 2, msec);
+    setUint16((uint8_t*)getBody() + 2, msec);
 }
 
 uint16_t MqttsConnect::getDuration(){
-    return getLong((uint8_t*)getBody() + 2);
+    return getUint16((uint8_t*)getBody() + 2);
 }
 
 void MqttsConnect::setClientId(MQString* id){
@@ -440,7 +441,7 @@ void MqttsConnect::setFrame(uint8_t* data, uint8_t len){
     setLength(len + MQTTS_HEADER_SIZE);
     allocateBody();
     memcpy(getBody(), data, len);
-    getBody()[2] = getLong(data + 4);
+    getBody()[2] = getUint16(data + 4);
     getBody()[0] = *(data + 2);
 }
 
@@ -582,7 +583,7 @@ MqttsRegister::~MqttsRegister(){
 
 void MqttsRegister::setTopicId(uint16_t topicId){
   if (_msgBuff){
-            setLong(getBody(), topicId);
+            setUint16(getBody(), topicId);
     }
     _topicId = topicId;
 }
@@ -591,7 +592,7 @@ uint16_t MqttsRegister::getTopicId(){
 }
 void MqttsRegister::setMsgId(uint16_t msgId){
     if (_msgBuff){
-            setLong(getBody() + 2, msgId);
+            setUint16(getBody() + 2, msgId);
     }
     _msgId = msgId;
 }
@@ -611,8 +612,8 @@ void MqttsRegister::setFrame(uint8_t* data, uint8_t len){
     setLength(len + MQTTS_HEADER_SIZE);
     allocateBody();
     memcpy(getBody(), data, len);
-    _topicId = getLong(data);
-    _msgId = getLong(data + 2);
+    _topicId = getUint16(data);
+    _msgId = getUint16(data + 2);
     _ustring.readBuf(getBody() + 4);
 }
 
@@ -636,16 +637,16 @@ MqttsRegAck::~MqttsRegAck(){
 
 }
 void MqttsRegAck::setTopicId(uint16_t topicId){
-    setLong((uint8_t*)getBody(), topicId);
+    setUint16((uint8_t*)getBody(), topicId);
 }
 uint16_t MqttsRegAck::getTopicId(){
-    return getLong((unsigned char*)getBody());
+    return getUint16((unsigned char*)getBody());
 }
 void MqttsRegAck::setMsgId(uint16_t msgId){
-    setLong(getBody()+ 2,msgId);
+    setUint16(getBody()+ 2,msgId);
 }
 uint16_t MqttsRegAck::getMsgId(){
-    return getLong((unsigned char*)getBody()+ 2);
+    return getUint16((unsigned char*)getBody()+ 2);
 }
 void MqttsRegAck::setReturnCode(uint8_t rc){
     getBody()[4] = rc;
@@ -692,7 +693,7 @@ uint8_t MqttsPublish::getQos(){
 }
 
 void MqttsPublish::setTopicId(uint16_t id){
-    setLong((uint8_t*)(getBody() + 1), id);
+    setUint16((uint8_t*)(getBody() + 1), id);
     _topicId = id;
 }
 
@@ -700,7 +701,7 @@ uint16_t MqttsPublish::getTopicId(){
     return _topicId;
 }
 void MqttsPublish::setMsgId(uint16_t msgId){
-    setLong((uint8_t*)(getBody() + 3), msgId);
+    setUint16((uint8_t*)(getBody() + 3), msgId);
     _msgId = msgId;
 }
 
@@ -726,8 +727,8 @@ void MqttsPublish::setFrame(uint8_t* data, uint8_t len){
     setLength(len + MQTTS_HEADER_SIZE);
     allocateBody();
     memcpy(getBody(), data, len);
-    _topicId = getLong(data + 1);
-    _msgId = getLong(data + 3);
+    _topicId = getUint16(data + 1);
+    _msgId = getUint16(data + 3);
     _flags = *data;
 }
 
@@ -748,16 +749,16 @@ MqttsPubAck::~MqttsPubAck(){
 
 }
 void MqttsPubAck::setTopicId(uint16_t topicId){
-    setLong((uint8_t*)getBody(), topicId);
+    setUint16((uint8_t*)getBody(), topicId);
 }
 uint16_t MqttsPubAck::getTopicId(){
-    return getLong((unsigned char*)getBody());
+    return getUint16((unsigned char*)getBody());
 }
 void MqttsPubAck::setMsgId(uint16_t msgId){
-    setLong(getBody()+ 2,msgId);
+    setUint16(getBody()+ 2,msgId);
 }
 uint16_t MqttsPubAck::getMsgId(){
-    return getLong((unsigned char*)getBody()+ 2);
+    return getUint16((unsigned char*)getBody()+ 2);
 }
 void MqttsPubAck::setReturnCode(uint8_t rc){
     getBody()[4] = rc;
@@ -801,27 +802,27 @@ void MqttsSubscribe::setTopicId(uint16_t predefinedId){
     setLength(7);
     allocateBody();
     setMsgId(_msgId);
-    setLong((uint8_t*)(getBody() + 3), predefinedId);
+    setUint16((uint8_t*)(getBody() + 3), predefinedId);
     setFlags(_flags | MQTTS_TOPIC_TYPE_PREDEFINED);
     _topicId = predefinedId;
 }
 
 uint16_t MqttsSubscribe::getTopicId(){
     if (_msgBuff){
-        _topicId = getLong(getBody() +3);
+        _topicId = getUint16(getBody() +3);
     }
     return _topicId;
 }
 void MqttsSubscribe::setMsgId(uint16_t msgId){
     _msgId = msgId;
     if (_msgBuff){
-       setLong((uint8_t*)(getBody() + 1), msgId);
+       setUint16((uint8_t*)(getBody() + 1), msgId);
     }
 }
 
 uint16_t MqttsSubscribe::getMsgId(){
     if (_msgBuff){
-        _msgId = getLong(getBody() + 1);
+        _msgId = getUint16(getBody() + 1);
     }
     return _msgId;
 }
@@ -843,13 +844,13 @@ void MqttsSubscribe::setFrame(uint8_t* data, uint8_t len){
     setLength(len + MQTTS_HEADER_SIZE);
     allocateBody();
     memcpy(getBody(), data, len);
-    _msgId = getLong(data + 1);
+    _msgId = getUint16(data + 1);
     _flags = *data;
     if ((_flags & MQTTS_TOPIC_TYPE) == MQTTS_TOPIC_TYPE_NORMAL){
         _topicId = 0;
         _ustring.readBuf(data + 3);
     }else{
-        _topicId = getLong(data + 3);
+        _topicId = getUint16(data + 3);
     }
 
 }
@@ -884,18 +885,18 @@ uint8_t MqttsSubAck::getQos(){
 }
 
 void MqttsSubAck::setTopicId(uint16_t id){
-    setLong((uint8_t*)(getBody() + 1), id);
+    setUint16((uint8_t*)(getBody() + 1), id);
 }
 
 uint16_t MqttsSubAck::getTopicId(){
-    return getLong(getBody() + 1);
+    return getUint16(getBody() + 1);
 }
 void MqttsSubAck::setMsgId(uint16_t msgId){
-   setLong((uint8_t*)(getBody() + 3), msgId);
+   setUint16((uint8_t*)(getBody() + 3), msgId);
 }
 
 uint16_t MqttsSubAck::getMsgId(){
-    return getLong(getBody() + 3);
+    return getUint16(getBody() + 3);
 }
 void MqttsSubAck::setReturnCode(uint8_t rc){
     getBody()[6] = rc;
@@ -933,11 +934,11 @@ MqttsUnSubAck::~MqttsUnSubAck(){
 }
 
 void MqttsUnSubAck::setMsgId(uint16_t msgId){
-    setLong((uint8_t*)getBody(), msgId);
+    setUint16((uint8_t*)getBody(), msgId);
 }
 
 uint16_t MqttsUnSubAck::getMsgId(){
-    return getLong(getBody());
+    return getUint16(getBody());
 }
 
 /*=====================================
@@ -983,10 +984,10 @@ MqttsDisconnect::~MqttsDisconnect(){
 
 }
 void MqttsDisconnect::setDuration(uint16_t duration){
-    setLong((uint8_t*)getBody(), duration);
+    setUint16((uint8_t*)getBody(), duration);
 }
 uint16_t MqttsDisconnect::getDuration(){
-    return getLong((uint8_t*)getBody());
+    return getUint16((uint8_t*)getBody());
 }
 
 
@@ -1175,25 +1176,6 @@ int Topics::execCallback(uint16_t topicId, MqttsPublish* msg){
 
 void Topics::addTopic(MQString* topic){
     if (getTopic(topic) == NULL){
-        /*
-      if ( _elmCnt < _sizeMax){
-          Topic* saveTopics = _topics;
-          Topic* newTopics = (Topic*)calloc(_elmCnt + 1, sizeof(Topic));
-          if (newTopics != NULL){
-              _topics = newTopics;
-              for(int i = 0; i < _elmCnt; i++){
-                  _topics[i].copy(&saveTopics[i]);
-                  saveTopics[i].setTopicName((MQString*)NULL);
-              }
-
-              _topics[_elmCnt].setTopicName(topic);
-              _elmCnt++;
-              if (saveTopics){
-                  delete saveTopics;
-              }
-          }
-      }
-      */
         if ( _elmCnt < _sizeMax){
             _topics[_elmCnt].setTopicName(topic);
             _elmCnt++;
@@ -1254,10 +1236,10 @@ int SendQue::addRequest(MqttsMessage* msg){
                 debug.println(msg->getType(), HEX);
               #endif
               #ifdef MBED
-                debug.printf("\nAdd SendQue MsgType = 0x%x\n", msg->getType());
+                debug.fprintf(stdout,"\nAdd SendQue MsgType = 0x%x\n", msg->getType());
               #endif
               #ifdef LINUX
-                printf("\nAdd SendQue MsgType = 0x%x\n", msg->getType());
+                fprintf(stdout,"\nAdd SendQue MsgType = 0x%x\n", msg->getType());
               #endif
           #endif /*DEBUG_MQTTS*/
         _msg[_queCnt] =new MqttsMessage();
@@ -1275,10 +1257,10 @@ int SendQue::addPriorityRequest(MqttsMessage* msg){
                 debug.println(msg->getType(), HEX);
               #endif
               #ifdef MBED
-                debug.printf("\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
+                debug.fprintf(stdout,"\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
               #endif
               #ifdef LINUX
-                printf("\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
+                fprintf(stdout,"\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
               #endif
           #endif /*DEBUG_MQTTS*/
         for(int i = _queCnt; i > 0; i--){
@@ -1299,10 +1281,10 @@ int SendQue::deleteRequest(uint8_t index){
                  debug.println("\nDelete SendQue");
                #endif
           #ifdef MBED
-                 debug.printf("\nDelete SendQue\n");
+                 debug.fprintf(stdout,"\nDelete SendQue\n");
           #endif
           #ifdef LINUX
-                 printf("\nDelete SendQue\n");
+                 fprintf(stdout,"\nDelete SendQue\n");
 
                  #endif
           #endif /*DEBUG_MQTTS*/

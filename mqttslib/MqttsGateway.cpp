@@ -30,18 +30,10 @@
  *
  */
 
-#ifdef ARDUINO
-        #include <MQTTS_Defines.h>
-#else
-        #include "MQTTS_Defines.h"
-#endif
+#ifndef ARDUINO
+#include "MQTTS_Defines.h"
 
 
-#ifdef ARDUINO
-  #include <SoftwareSerial.h>
-  #include <MqttsGateway.h>
-
-#endif  /* ARDUINO */
 
 #ifdef MBED
   #include "mbed.h"
@@ -89,7 +81,7 @@ MqttsGateway::MqttsGateway(){
     _tRetry = 0;
     //_nodeList = new ZBNodeList(30);
     _msgId = 0;
-    _topicId = 0;
+    _topicId = MQTTS_TOPICID_NORMAL;
     _topics.allocate(MQTTS_MAX_TOPICS);
     _advertiseTimer.start();
     theMqttsGw = this;
@@ -101,12 +93,6 @@ MqttsGateway::~MqttsGateway(){
   delete _sp;
 }
 
-
-#ifdef ARDUINO
-void MqttsGateway::begin(long baudrate){
-        _sp->begin(baudrate);
-}
-#endif /* ARDUINO */
 
 #ifdef MBED
 void MqttsGateway::begin(long baudrate){
@@ -162,7 +148,7 @@ uint16_t MqttsGateway::getNextMsgId(){
 uint16_t MqttsGateway::getNextTopicId(){
     _topicId++;
     if (_topicId == 0){
-        _topicId = 1;
+        _topicId = MQTTS_TOPICID_NORMAL;
     }
     return _topicId;
 }
@@ -207,8 +193,19 @@ uint8_t MqttsGateway::getLoopCtrl(){
 bool MqttsGateway::init(const char* gwNameId, uint8_t id){
     _gwId = id;
     _gatewayId->copy(gwNameId);
+    MQString* pre1 = new MQString(MQTTS_TOPIC_PREDEFINED_TIME);
+   _topics.addTopic(pre1);
+   _topics.setTopicId(pre1,MQTTS_TOPICID_PREDEFINED_TIME);
     _advertiseTimer.start();
     return _zbee->init(ZB_GATEWAY, gwNameId);
+}
+
+int MqttsGateway::publishUnixTime(){
+    long int tm = time(NULL);
+    char payload[sizeof(long int)];
+    memcpy(payload, &tm, sizeof(long int));
+    return publish((uint16_t)MQTTS_TOPICID_PREDEFINED_TIME, (const char*)payload, sizeof(long int));
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -288,16 +285,21 @@ int MqttsGateway::unicast(uint16_t packetReadTimeout){
 int MqttsGateway::publish(MQString* topic, const char* data, int dataLength){
   uint16_t topicId = _topics.getTopicId(topic);
   if (topicId){
-      MqttsPublish mqttsMsg = MqttsPublish();
-      mqttsMsg.setTopicId(topicId);
-      mqttsMsg.setData((uint8_t*)data, (uint8_t)dataLength);
-      mqttsMsg.setMsgId(getNextMsgId());
-      mqttsMsg.setFlags(MQTTS_FLAG_QOS_1);
-      setLoopCtrl(MQTTS_TYPE_PUBLISH);
-      return requestSendMsg((MqttsMessage*)&mqttsMsg);
+      return publish(topicId, data, dataLength);
   }
   return MQTTS_ERR_NO_TOPICID;
 }
+
+int  MqttsGateway::publish(uint16_t topicId, const char* data, int dataLength){
+    MqttsPublish mqttsMsg = MqttsPublish();
+    mqttsMsg.setTopicId(topicId);
+    mqttsMsg.setData((uint8_t*)data, (uint8_t)dataLength);
+    mqttsMsg.setMsgId(getNextMsgId());
+    mqttsMsg.setFlags(MQTTS_FLAG_QOS_1);
+    setLoopCtrl(MQTTS_TYPE_PUBLISH);
+    return requestSendMsg((MqttsMessage*)&mqttsMsg);
+}
+
 /*--------- PUBACK ------*/
 int MqttsGateway::pubAck(uint16_t topicId, uint16_t msgId, uint8_t rc){
     MqttsPubAck mqttsMsg = MqttsPubAck();
@@ -411,6 +413,17 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
        printf("PUBLISH recv\n");
         MqttsPublish mqMsg = MqttsPublish();
         mqMsg.setFrame(recvMsg);
+        if (mqMsg.getTopicId() == MQTTS_TOPICID_PREDEFINED_TIME){
+            uint32_t t = (uint32_t(mqMsg.getData()[3]) << 24) +
+                (uint32_t(mqMsg.getData()[2]) << 16) +
+                (uint32_t(mqMsg.getData()[1]) <<  8) +
+                mqMsg.getData()[0];
+            printf("\n\n\n=====  %ld =======\n", t - time(NULL));
+            struct tm *tm = localtime((const long*)&t);
+            char date[20];
+            strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", tm);
+            printf("%s\n\n", date);
+        }
         pubAck(mqMsg.getTopicId(), mqMsg.getMsgId(), MQTTS_RC_ACCEPTED);
 
 /*---------  PUBACK  --------*/
@@ -422,15 +435,26 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
         printf("SUBSCRIBE recv\n");
         MqttsSubscribe mqMsg = MqttsSubscribe();
         mqMsg.setFrame(recvMsg);
-        MQString* mqStr = mqMsg.getTopicName()->create();
+        uint16_t id;
 
-        uint16_t id = _topics.getTopicId(mqStr);
-        if (!id){
-            _topics.addTopic(mqStr);
-            id = getNextTopicId();
-            _topics.setTopicId(mqStr, id);
+        if (mqMsg.getFlags() && MQTTS_TOPIC_TYPE_PREDEFINED){
+            id = mqMsg.getTopicId();
+        }else{
+            MQString* mqStr = mqMsg.getTopicName()->create();
+
+            id = _topics.getTopicId(mqStr);
+            if (!id){
+                _topics.addTopic(mqStr);
+                id = getNextTopicId();
+                _topics.setTopicId(mqStr, id);
+            }
         }
+
         subAck(id, mqMsg.getMsgId(), MQTTS_RC_ACCEPTED, mqMsg.getFlags());
+
+        if (id == MQTTS_TOPICID_PREDEFINED_TIME){
+            publishUnixTime();
+        }
 
 /*---------  SEARCHGW  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_SEARCHGW){
@@ -508,6 +532,8 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
     }
 }
 
+
+#endif  /* ARDUINO */
 
 /*========= End of File ==============*/
 

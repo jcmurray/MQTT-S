@@ -23,103 +23,101 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- *  Created on: 2013/06/08
+ *  Created on: 2013/06/28
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.3.0
+ *     Version: 1.0.0
  *
  */
  
 #include <MQTTS_Defines.h>
 #include <MqttsClientAppFw4Arduino.h>
 
+/*--------------------------------
+ *  Console for debug
+ ---------------------------------*/
 #if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK) 
-    #include <SoftwareSerial.h>
-    uint8_t ssRX = 8; // Connect Arduino pin 8 to TX of usb-serial device
-    uint8_t ssTX = 9; // Connect Arduino pin 9 to RX of usb-serial device
-    SoftwareSerial debug(ssRX, ssTX);
+#include <SoftwareSerial.h>
+uint8_t ssRX = 8; // Connect Arduino pin 8 to TX of usb-serial device
+uint8_t ssTX = 9; // Connect Arduino pin 9 to RX of usb-serial device
+SoftwareSerial debug(ssRX, ssTX);
 #endif
 
-    MqttsClientApplication app = MqttsClientApplication();
-    
-    MQString* tp1 = new MQString("abc/def/g");
-    MQString* tp2 = new MQString("efg/hi/j");
-    
-    MQString willtopic = MQString("will/topic");
-    MQString willmsg = MQString("willMessage");
-    
-    int  cb1(MqttsPublish* msg){
-          #ifdef MQTTS_DEBUG
-          debug.println("exec callback");
-          #endif
-          return 0;
-    }
-    
-    int pubCallback1(MqttsPublish* msg){
-  Serial.println("pubCallback1 was executed");
+/* ----------  Create Application ----------*/
+MqttsClientApplication app = MqttsClientApplication();
+
+/*-----------  Callback of subscribe to set Current Time ----------*/
+int  setTime(MqttsPublish* msg){
+  debug.println("=============== setUnixTime===========");
+  app.setUnixTime(msg);
   return 0;
 }
 
-// Callback for WDT
+/*----------- Create Topics -----------------*/
+MQString* tp1 = new MQString("abc/def/g");
+MQString* tp2 = new MQString("efg/hi/j");
+
+MQString willtopic = MQString("will/topic");
+MQString willmsg = MQString("willMessage");
+
+/*----------  Functions for WDT interuption -------*/
+
 void wdtFunc0(){
   debug.println("wdtFunc0()");
-  app.publish(tp1, "12345", 5);
+  char payload[4];
+  uint32_t tm = app.getUnixTime();
+  memcpy(payload, &tm, 4);
+  app.publish(MQTTS_TOPICID_PREDEFINED_TIME, (const char*)payload, 4);
 }
 
-// Callbacks for WDT
 void wdtFunc1(){
   debug.println("wdtFunc1()");
   app.publish(tp2,"67890", 5);
 }
 
-// Callback for INT0
+/*---------- Function for INT0 interuption --------*/
 void intFunc(){
   
-  
 }
-    
+
 void setup(){
-  #if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK) 
+#if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK) 
   debug.begin(19200);
 #endif
   // Register Callback for INT0
   app.registerInt0Callback(intFunc);
-  
+
   // Register Callbacks for WDT (Sec、callback)
   app.registerWdtCallback(5,wdtFunc0);
   app.registerWdtCallback(11,wdtFunc1);
-  
-  app.begin(38400);
-  app.init("Node-02");
-    app.setQos(1);
-    
-    app.setWillTopic(&willtopic);
-    app.setWillMessage(&willmsg);
-    app.setKeepAlive(300);
-    
+
+  app.begin(38400);    // Set XBee Serial baudrate
+  app.init("Node-02");   // Initialize application
+  app.setQos(1);            // Set QOS level 1
+
+  app.setWillTopic(&willtopic);       // Set WillTopic
+  app.setWillMessage(&willmsg);  // Set WillMessage
+  app.setKeepAlive(300);                // Set PINGREQ interval
+
 }
 
 void loop(){    
 
-    app.connect();
-    app.runConnect();
-   
+  app.connect();           // create CONNECT message
+  app.runConnect();    // Send CONNECT message
 
-    app.registerTopic(tp1);
-    app.run();
-    
-    app.registerTopic(tp2);
-    app.run();
 
-    MQString *topic = new MQString("a/bcd/ef");
+  app.registerTopic(tp1);  // create REGISTER message
+  app.run();                           // send TOPIC message
 
-    app.subscribe(topic, cb1);
-    app.run();
-        
-    app.startWdt();
-    app.runLoop();
-        
+  app.registerTopic(tp2);  // create REGISTER message
+  app.run();                           // send TOPIC message
+
+  app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
+  app.run();                                                   // send SUBSCRIBE message
+
+  app.startWdt();    // Start Watch dog timer interuption
+  app.runLoop();     // Run Loop
+
 
 }
-
-
 

@@ -59,7 +59,6 @@
         #endif
 #endif
 
-
 #define MQTTS_DEBUG_TOPIC_ID 0x0012
 
 /*=====================================
@@ -92,6 +91,7 @@ public:
 
     void setGwId(MQString* gwId, uint8_t id);
     int  publish(MQString* topic, const char* data, int dataLength);
+    int  publish(uint16_t topicId, const char* data, int dataLength);
     int  pubAck(uint16_t topicId, uint16_t msgId, uint8_t rc);
     int  subAck(uint16_t topicId, uint16_t msgId, uint8_t rc, uint8_t flag);
     int  registerTopic(MQString* mqStr, uint16_t topicId);
@@ -104,6 +104,7 @@ public:
     int  pingResp();
     int  willTopicReq();
     int  willMsgReq();
+    int  publishUnixTime();
     bool init(const char* gatewayIdName, uint8_t id);
     int  execMsgRequest();
     void recieveMessageHandler(ZBRxResponse* msg, int* returnCode);

@@ -229,7 +229,10 @@ void MqttsClient::begin(long baudrate){
 
 bool MqttsClient::init(const char* clientNameId){
     _clientId->copy(clientNameId);
-        return _zbee->init(ZB_CLIENT,clientNameId);
+    MQString* pre1 = new MQString(MQTTS_TOPIC_PREDEFINED_TIME);
+    _topics.addTopic(pre1);
+    _topics.setTopicId(pre1,MQTTS_TOPICID_PREDEFINED_TIME);
+    return _zbee->init(ZB_CLIENT,clientNameId);
 }
 
 Topics* MqttsClient::getTopics(){
@@ -619,6 +622,7 @@ int MqttsClient::subscribe(uint16_t predefinedId, TopicCallback callback){
     mqttsMsg.setTopicId(predefinedId);
     mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_PREDEFINED);
     mqttsMsg.setMsgId(getNextMsgId());
+    _topics.setCallback(predefinedId, callback);
     return requestSendMsg((MqttsMessage*)&mqttsMsg);
 }
 
@@ -739,7 +743,7 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
             #endif
         #endif /* DEBUG_MQTTS */
 
-        if (mqMsg.getMsgId() == getLong(_sendQ->getMessage(0)->getBody() + 3)){
+        if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 3)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
 
@@ -898,9 +902,9 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
             getMsgRequestType() == MQTTS_TYPE_REGISTER){
             MqttsRegAck mqMsg = MqttsRegAck();
             copyMsg(&mqMsg, recvMsg);
-            if (mqMsg.getMsgId() == getLong(_sendQ->getMessage(0)->getBody() + 2)){
-                if (mqMsg.getMsgId() == getLong(_sendQ->getMessage(0)->getBody() + 2)){
-                    if (getLong((uint8_t*)_sendQ->getMessage(0)->getBody()+4)){
+            if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 2)){
+                if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 2)){
+                    if (getUint16((uint8_t*)_sendQ->getMessage(0)->getBody()+4)){
                         if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                             setMsgRequestStatus(MQTTS_MSG_COMPLETE);
                             MQString topic;
@@ -935,7 +939,7 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
            #endif
        #endif /* DEBUG_MQTTS */
 
-        if (mqMsg.getMsgId() == getLong(_sendQ->getMessage(0)->getBody() + 1)){
+        if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 1)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
                 if (_sendQ->getMessage(0)->getBodyLength() > 5){ // TopicName is not Id
@@ -966,7 +970,7 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
           #endif /* DEBUG_MQTTS */
         MqttsUnSubAck mqMsg = MqttsUnSubAck();
         copyMsg(&mqMsg, recvMsg);
-        if (mqMsg.getMsgId() == getLong(_sendQ->getMessage(0)->getBody() + 1)){
+        if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 1)){
               setMsgRequestStatus(MQTTS_MSG_COMPLETE);
         }
 

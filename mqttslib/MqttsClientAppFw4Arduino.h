@@ -26,9 +26,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  *
- *  Created on: 2013/06/15
+ *  Created on: 2013/06/24
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.4.0
+ *     Version: 1.0.0
  */
 
 #ifndef MQTTSCLIENTAPPLICATION_H_
@@ -53,25 +53,17 @@
 
 #define MQ_WDT_ERR   (B01100000)  // Error Indication time
 
-//#define MQ_WDT_TIME  (B01000110)  // 1 Sec
-//#define MQ_WDT_TIME_SEC   1       // 1 Sec
-
 #define MQ_WDT_TIME (B01000111)   // 2 Sec
-#define MQ_WDT_TIME_SEC   2       // 2 Sec
 
 //#define MQ_WDT_TIME (B01100000)     // 4 Sec
-//#define MQ_WDT_TIME_SEC   4         // 4 Sec  
  
 //#define MQ_WDT_TIME (B01100001)   // 8 Sec
-//#define MQ_WDT_TIME_SEC   9       // 8 Sec
 
 
-#define MQ_WAKEUP_COUNT   8
 
 typedef struct {
-	uint16_t cnt;
-	uint16_t cntReg;
-	bool flg;
+	long prevTime;
+	long interval;
 	void (*callback)(void);;
 }MQ_TimerTbl;
 
@@ -83,16 +75,15 @@ enum MQ_INT_STATUS{ WAIT, INT0_LL, INT0_WAIT_HL, INT_WDT};
 class WdTimer {
 public:
 	WdTimer(void);
-	uint8_t registerCallback(double sec, void (*proc)());
+	uint8_t registerCallback(long sec, void (*proc)());
+	void refleshRegisterTable();
 	void start(void);
 	void stop(void);
-	void timeUp(void);
+	void wakeUp(void);
 
 private:	
 	MQ_TimerTbl *_timerTbls;
 	uint8_t _timerCnt;
-	uint8_t _wdtTime;
-	//uint16_t _resolutionMilisec;
 };
 
 /*======================================
@@ -103,7 +94,8 @@ public:
 	MqttsClientApplication();
 	~MqttsClientApplication();
 	void registerInt0Callback(void (*callback)());
-	void registerWdtCallback(double sec, void (*callback)());
+	void registerWdtCallback(long sec, void (*callback)());
+	void refleshWdtCallbackTable();
 	void setup(const char* clientId, uint16_t baudrate);
 	void begin(long baudrate);
 	void init(const char* clientNameId);
@@ -133,6 +125,8 @@ public:
 	void run();
 	void runConnect();
 	void runLoop();
+	void setUnixTime(MqttsPublish* msg);
+	long getUnixTime();
 
 private:
 	uint8_t getMsgRequestType();
@@ -143,12 +137,14 @@ private:
 	bool isGwConnected();
 	void setMsgRequestStatus(uint8_t stat);
 	void checkInterupt();
-	void wdtHandler();
 	void interruptHandler();
-    void setInterrupt();
+        void setInterrupt();
 	
 	MqttsClient _mqtts;
 	bool _txFlag;
+	long    _unixTime;
+        uint32_t _epochTime;
+
 	uint8_t _wdtCnt;
 	uint8_t _wakeupCnt;
 	uint8_t _wakeupCntReg; 

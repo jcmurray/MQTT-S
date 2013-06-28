@@ -146,8 +146,12 @@
 #define MQTTS_TOPIC_MULTI_WILDCARD   '#'
 #define MQTTS_TOPIC_SINGLE_WILDCARD  '+'
 
-extern uint16_t getLong(uint8_t* pos);
-extern void setLong(uint8_t* pos, uint16_t val);
+#define MQTTS_TOPICID_NORMAL 256
+#define MQTTS_TOPICID_PREDEFINED_TIME  0x0001
+#define MQTTS_TOPIC_PREDEFINED_TIME ("PDEF/01")
+
+extern uint16_t getUint16(uint8_t* pos);
+extern void setUint16(uint8_t* pos, uint16_t val);
 
 
 /*=====================================
