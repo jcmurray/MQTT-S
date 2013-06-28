@@ -27,9 +27,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  *
- *  Created on: 2013/06/17
+ *  Created on: 2013/06/28
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  *
  */
  
@@ -103,6 +103,7 @@ MqttsClientApplication::MqttsClientApplication(){
     _intHandler = IntHandleDummy;
     _unixTime = 0;
     _epochTime = 0;
+    _sleepMode = MQ_MODE_NOSLEEP;
 
 }
 
@@ -138,23 +139,31 @@ void MqttsClientApplication::refleshWdtCallbackTable(){
 
 void MqttsClientApplication::checkInterupt(){
 
-    // WDT event
-    if (MQ_wdtStat == INT_WDT){
-        _wdTimer.wakeUp();    // Check All callbacks& exec
-        _wdTimer.start();     // Restart WDT
-    }
-
     // interrupt Event
     if (MQ_intStat == INT0_LL){
         MQ_intStat = INT0_WAIT_HL;
         interruptHandler();
         setInterrupt();
     }
+
+    // WDT event
+    if (MQ_wdtStat == INT_WDT){
+        _wdTimer.wakeUp();    // Check Callback's intervals & execute
+        if (_sleepMode == MQ_MODE_SLEEP){
+            sleepXB();
+            sleepApp();
+            wakeupXB();
+        }else{
+            _wdTimer.start();     // Restart WDT
+        }
+    }
 }
 
 
 void MqttsClientApplication::interruptHandler(){
+    wakeupXB();
     _intHandler();
+    sleepXB();
 }
 
 void MqttsClientApplication::setInterrupt(){
@@ -174,12 +183,12 @@ void MqttsClientApplication::blinkIndicator(int msec){
 }
 
 void MqttsClientApplication::sleepXB(){
-    digitalWrite(MQ_SLEEP_PIN, MQ_WAKEUP);
+    digitalWrite(MQ_SLEEP_PIN, MQ_SLEEP);
 }
 
 void MqttsClientApplication::wakeupXB(){
-    digitalWrite(MQ_SLEEP_PIN, MQ_SLEEP);
-    blinkIndicator(100);
+    digitalWrite(MQ_SLEEP_PIN, MQ_WAKEUP);
+    blinkIndicator(1);
 }
 
 void MqttsClientApplication::sleepApp(){
@@ -190,6 +199,10 @@ void MqttsClientApplication::sleepApp(){
     MQ_wdtStat = WAIT;
     sleep_mode();
     sleep_disable();
+}
+
+void MqttsClientApplication::setSleepMode(uint8_t sleepMode){
+    _sleepMode = sleepMode;
 }
 
 void MqttsClientApplication::begin(long baudrate){
