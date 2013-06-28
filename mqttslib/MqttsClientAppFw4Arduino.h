@@ -26,9 +26,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  *
- *  Created on: 2013/06/24
+ *  Created on: 2013/06/28
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  */
 
 #ifndef MQTTSCLIENTAPPLICATION_H_
@@ -53,13 +53,15 @@
 
 #define MQ_WDT_ERR   (B01100000)  // Error Indication time
 
-#define MQ_WDT_TIME (B01000111)   // 2 Sec
+//#define MQ_WDT_TIME (B01000111)   // 2 Sec
 
 //#define MQ_WDT_TIME (B01100000)     // 4 Sec
  
-//#define MQ_WDT_TIME (B01100001)   // 8 Sec
+#define MQ_WDT_TIME (B01100001)   // 8 Sec
 
 
+#define MQ_MODE_NOSLEEP 0
+#define MQ_MODE_SLEEP   1
 
 typedef struct {
 	long prevTime;
@@ -79,7 +81,7 @@ public:
 	void refleshRegisterTable();
 	void start(void);
 	void stop(void);
-	void wakeUp(void);
+	bool wakeUp(void);
 
 private:	
 	MQ_TimerTbl *_timerTbls;
@@ -110,6 +112,7 @@ public:
 	void blinkIndicator(int msec);
 	void sleepXB();
 	void wakeupXB();
+	void setSleepMode(uint8_t sleepMode);
 	
 	int connect();
 	int registerTopic(MQString* topic);
@@ -144,10 +147,11 @@ private:
 	bool _txFlag;
 	long    _unixTime;
         uint32_t _epochTime;
+        uint8_t _sleepMode;
 
-	uint8_t _wdtCnt;
-	uint8_t _wakeupCnt;
-	uint8_t _wakeupCntReg; 
+	//uint8_t _wdtCnt;
+	//uint8_t _wakeupCnt;
+	//uint8_t _wakeupCntReg;
 	WdTimer _wdTimer;
 
 	void (*_intHandler)(void);

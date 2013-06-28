@@ -103,7 +103,7 @@ void MqttsGateway::begin(long baudrate){
 #ifdef LINUX
 void MqttsGateway::begin(char* device, unsigned int bauderate){
   if( _sp->begin(device, bauderate) < 0){
-  fprintf( stdout," Serialport open Error %s", device);
+  printf(" Serialport open Error %s", device);
     exit(-1);
   }
 }

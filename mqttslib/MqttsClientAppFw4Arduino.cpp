@@ -99,7 +99,7 @@ void IntHandleDummy(){
 =========================================*/
 MqttsClientApplication::MqttsClientApplication(){
     _txFlag = false;
-    _wdtCnt = 0;
+    //_wdtCnt = 0;
     _intHandler = IntHandleDummy;
     _unixTime = 0;
     _epochTime = 0;
@@ -119,7 +119,7 @@ void MqttsClientApplication::setup(const char* clientId, uint16_t baurate){
       sleepXB();
       MQ_intStat = WAIT;
       MQ_wdtStat = WAIT;
-      _wdtCnt = 0;
+      //_wdtCnt = 0;
       setInterrupt();
 }
 
@@ -313,8 +313,9 @@ void MqttsClientApplication::runConnect(){
 }
 
 void MqttsClientApplication::runLoop(){
+
     while(true){
-    int rc = execMsgRequest();
+        int rc = execMsgRequest();
         if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) &&
                 getMsgRequestStatus() != MQTTS_MSG_REQUEST){
                 clearMsgRequest();
@@ -324,7 +325,25 @@ void MqttsClientApplication::runLoop(){
                 #endif
         }
         blinkIndicator(1);
-        checkInterupt();
+
+        // interrupt Event
+       if (MQ_intStat == INT0_LL){
+           MQ_intStat = INT0_WAIT_HL;
+           interruptHandler();
+           setInterrupt();
+       }
+
+       // WDT event
+       if (_sleepMode == MQ_MODE_NOSLEEP){
+           if (MQ_wdtStat == INT_WDT){
+               _wdTimer.wakeUp();
+               _wdTimer.start();
+           }
+       }else{
+           sleepXB();
+           sleepApp();
+           wakeupXB();
+       }
     }
 }
 
@@ -373,14 +392,16 @@ void WdTimer::stop(void){
 }
 
 
-void WdTimer::wakeUp(void){
-
+bool WdTimer::wakeUp(void){
+    bool rc = false;
     for(uint8_t i = 0; i < _timerCnt; i++) {
         if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
             (_timerTbls[i].callback)();
             _timerTbls[i].prevTime = theApplication->getUnixTime();
+            rc = true;
         }
     }
+    return rc;
 }
 
 
