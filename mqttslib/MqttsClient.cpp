@@ -30,9 +30,7 @@
  *     Version: 1.0.1
  *
  */
-#ifdef ARDUINO
-  #include <MQTTS_Defines.h>
-#else
+#ifndef ARDUINO
   #include "MQTTS_Defines.h"
 #endif
 
@@ -50,7 +48,7 @@
   #include "mbed.h"
   #include "MqttsClient.h"
 
-  #if defined(DEBUG_ZBEESTACK))
+  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
         extern Serial debug;
   #endif
 #endif  /* MBED */
@@ -515,7 +513,11 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
                 #ifdef ARDUINO
                   delay(MQTTS_TIME_WAIT * 1000);
                 #else
-                  usleep(MQTTS_TIME_WAIT * 1000000);
+                    #ifdef MBED
+                        wait_ms(MQTTS_TIME_WAIT * 1000);
+                    #else
+                        usleep(MQTTS_TIME_WAIT * 1000000);
+                    #endif
                 #endif
                 _zbee->sendData(_gwHdl.getAddress64(), _gwHdl.getAddress16(),
                                 _sendQ->getMessage(0)->getMsgBuff(),
@@ -931,7 +933,7 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
                debug.print("SUBACK ReturnCode=");
                debug.println(mqMsg.getReturnCode(),HEX);
            #endif
-           #if MBED
+           #ifdef MBED
                debug.printf("\nSUBACK ReturnCode=%d\n", mqMsg.getReturnCode());
            #endif
            #ifdef LINUX

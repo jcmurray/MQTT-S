@@ -31,8 +31,6 @@
 
 #ifndef ARDUINO
         #include "MQTTS_Defines.h"
-#else
-        #include <MQTTS_Defines.h>
 #endif
 
 
@@ -41,7 +39,7 @@
   #include <MQTTS.h>
 
   #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
-	extern SoftwareSerial debug;
+    extern SoftwareSerial debug;
   #endif
 
 #endif  /* ARDUINO */
@@ -51,7 +49,7 @@
   #include "MQTTS.h"
 
   #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
-	extern Serial debug;
+    extern Serial debug;
   #endif
 #endif  /* MBED */
 
@@ -518,11 +516,11 @@ MQString* MqttsWillTopic::getWillTopic(){
 }
 
 bool MqttsWillTopic::isWillRequired(){
-    return getBody()[0] & 0b00010000;
+    return getBody()[0] && MQTTS_FLAG_WILL;
 }
 
 uint8_t MqttsWillTopic::getQos(){
-    return _flags && 0b01100000;
+    return _flags && (MQTTS_FLAG_QOS_1 | MQTTS_FLAG_QOS_2);
 }
 
 /*=====================================
@@ -681,15 +679,15 @@ uint8_t MqttsPublish::getFlags(){
 }
 
 uint8_t MqttsPublish::getTopicType(){
-    return _flags && 0b00000011;
+    return _flags & MQTTS_TOPIC_TYPE;
 }
 
 bool MqttsPublish::isRetain(){
-    return _flags && 0b000010000;
+    return _flags && MQTTS_FLAG_RETAIN;
 }
 
 uint8_t MqttsPublish::getQos(){
-    return _flags && 0b01100000;
+    return _flags & (MQTTS_FLAG_QOS_1 | MQTTS_FLAG_QOS_2);
 }
 
 void MqttsPublish::setTopicId(uint16_t id){
@@ -795,7 +793,7 @@ uint8_t MqttsSubscribe::getFlags(){
 }
 
 uint8_t MqttsSubscribe::getQos(){
-    return _flags && 0b01100000;
+    return _flags & (MQTTS_FLAG_QOS_1 | MQTTS_FLAG_QOS_2);
 }
 
 void MqttsSubscribe::setTopicId(uint16_t predefinedId){
@@ -881,7 +879,7 @@ uint8_t MqttsSubAck::getFlags(){
 }
 
 uint8_t MqttsSubAck::getQos(){
-    return getBody()[0] && 0b01100000;
+    return getBody()[0] & (MQTTS_FLAG_QOS_1 | MQTTS_FLAG_QOS_2);
 }
 
 void MqttsSubAck::setTopicId(uint16_t id){
@@ -1089,9 +1087,9 @@ bool Topic::isMatch(Topic* wildCard){
         Class Topics
  ======================================*/
 Topics::Topics(){
-	_sizeMax = 0;
-	_elmCnt = 0;
-	_topics = NULL;
+    _sizeMax = 0;
+    _elmCnt = 0;
+    _topics = NULL;
 }
 
 Topics::~Topics() {
@@ -1236,10 +1234,10 @@ int SendQue::addRequest(MqttsMessage* msg){
                 debug.println(msg->getType(), HEX);
               #endif
               #ifdef MBED
-                debug.fprintf(stdout,"\nAdd SendQue MsgType = 0x%x\n", msg->getType());
+                debug.printf("\nAdd SendQue MsgType = 0x%x\n", msg->getType());
               #endif
               #ifdef LINUX
-                fprintf(stdout,"\nAdd SendQue MsgType = 0x%x\n", msg->getType());
+                printf("\nAdd SendQue MsgType = 0x%x\n", msg->getType());
               #endif
           #endif /*DEBUG_MQTTS*/
         _msg[_queCnt] =new MqttsMessage();
@@ -1257,10 +1255,10 @@ int SendQue::addPriorityRequest(MqttsMessage* msg){
                 debug.println(msg->getType(), HEX);
               #endif
               #ifdef MBED
-                debug.fprintf(stdout,"\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
+                debug.printf("\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
               #endif
               #ifdef LINUX
-                fprintf(stdout,"\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
+                printf("\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
               #endif
           #endif /*DEBUG_MQTTS*/
         for(int i = _queCnt; i > 0; i--){
@@ -1281,10 +1279,10 @@ int SendQue::deleteRequest(uint8_t index){
                  debug.println("\nDelete SendQue");
                #endif
           #ifdef MBED
-                 debug.fprintf(stdout,"\nDelete SendQue\n");
+                 debug.printf("\nDelete SendQue\n");
           #endif
           #ifdef LINUX
-                 fprintf(stdout,"\nDelete SendQue\n");
+                 printf("\nDelete SendQue\n");
 
                  #endif
           #endif /*DEBUG_MQTTS*/
@@ -1324,7 +1322,7 @@ MqttsMessage* SendQue::getMessage(uint8_t index){
   return NULL;
 }
 
-uint8_t SendQue::getStatus(uint8_t index){
+int SendQue::getStatus(uint8_t index){
   if ( index < _queCnt){
       return _msg[index]->getStatus();
   }

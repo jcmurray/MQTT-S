@@ -33,10 +33,8 @@
 #ifndef MQTTSCLIENT_H_
 #define MQTTSCLIENT_H_
 
-#ifdef ARDUINO
-        #include <MQTTS_Defines.h>
-#else
-        #include "MQTTS_Defines.h"
+#ifndef ARDUINO
+    #include "MQTTS_Defines.h"
 #endif
 
 
@@ -50,7 +48,9 @@
                 #include <inttypes.h>
                 #include <MQTTS.h>
         #else
-                #include <sys/time.h>
+                #ifdef LINUX
+                    #include <sys/time.h>
+                #endif
                 #include <iostream>
                 #include "MQTTS.h"
         #endif
@@ -101,8 +101,12 @@ public:
   #ifdef ARDUINO
     void begin(long baudrate);
   #else
-    void begin(char* device, unsigned int bauderate);  /* MBED & LINUX */
-  #endif
+    #ifdef MBED
+        void begin(long baudrate);
+    #else
+        void begin(char* device, unsigned int bauderate);  /* MBED & LINUX */
+    #endif /* MBED */
+  #endif /* ARDUINO */
     Topics* getTopics();
     bool init(const char* clientIdName);
     void setKeepAlive(uint16_t sec);

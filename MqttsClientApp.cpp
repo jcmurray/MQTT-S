@@ -23,23 +23,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- *  Created on: 2013/06/17
+ *  Created on: 2013/06/29
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.3
  *
  */
 
-#ifdef ARDUINO
-  #include <MQTTS_Defines.h>
-  #include <MqttsClient.h>
-#else
-  #include "mqttslib/MQTTS_Defines.h"
-  #include "mqttslib/MqttsClient.h"
+#include "mqttslib/MQTTS_Defines.h"
+#include "mqttslib/MqttsClient.h"
+
+#ifdef MBED
+    #if  defined(DEBUG_MQTTS) || defined(DEBUG_ZBEESTACK)
+        Serial debug(USBRX, USBTX);
+    #endif
 #endif
 
-#if defined(LINUX) || defined(MBED)
+#ifdef LINUX
   #include <stdio.h>
-  #include <unistd.h>
   #include <stdlib.h>
   #include <string.h>
   #include <iostream>
@@ -55,11 +55,15 @@ int fnTp1(MqttsPublish* msg){
 }
 
 
+
 int main(int argc, char **argv){
 
     MqttsClient mqtts = MqttsClient();
-
-    mqtts.begin(argv[1], B38400);
+    #ifdef LINUX
+        mqtts.begin(argv[1], B38400);
+    #else
+        mqtts.begin(38400);
+    #endif
     mqtts.init("Node-02");
     mqtts.setQos(1);
     mqtts.setWillTopic(willtopic);
@@ -101,3 +105,5 @@ int main(int argc, char **argv){
     }
 
 }
+
+

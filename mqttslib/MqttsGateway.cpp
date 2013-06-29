@@ -24,16 +24,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  * 
- *  Created on: 2013/06/19
+ *  Created on: 2013/06/29
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 0.5.1
+ *     Version: 1.0.0
  *
  */
-
 #ifndef ARDUINO
 #include "MQTTS_Defines.h"
-
-
 
 #ifdef MBED
   #include "mbed.h"
@@ -54,18 +51,18 @@
   #include <termios.h>
 #endif /* LINUX */
 
-using namespace std;
-
 static MqttsGateway*  theMqttsGw;
+
+
+void ResponseHandlerGw(ZBRxResponse* resp, int* returnCode){
+    theMqttsGw->recieveMessageHandler(resp, returnCode);
+}
 
 /*=======================================================================================
 
         Class MqttsGateway   for    DEBUG
 
  =======================================================================================*/
-void ResponseHandlerGw(ZBRxResponse* resp, int* returnCode){
-        theMqttsGw->recieveMessageHandler(resp, returnCode);
-}
 
 MqttsGateway::MqttsGateway(){
     _zbee = new ZBeeStack();
@@ -414,12 +411,12 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
         MqttsPublish mqMsg = MqttsPublish();
         mqMsg.setFrame(recvMsg);
         if (mqMsg.getTopicId() == MQTTS_TOPICID_PREDEFINED_TIME){
-            uint32_t t = (uint32_t(mqMsg.getData()[3]) << 24) +
+            time_t t = (uint32_t(mqMsg.getData()[3]) << 24) +
                 (uint32_t(mqMsg.getData()[2]) << 16) +
                 (uint32_t(mqMsg.getData()[1]) <<  8) +
                 mqMsg.getData()[0];
             printf("\n\n\n=====  %ld =======\n", t - time(NULL));
-            struct tm *tm = localtime((const long*)&t);
+            struct tm *tm = localtime(&t);
             char date[20];
             strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", tm);
             printf("%s\n\n", date);
@@ -536,9 +533,6 @@ void MqttsGateway::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode)
 #endif  /* ARDUINO */
 
 /*========= End of File ==============*/
-
-
-
 
 
 

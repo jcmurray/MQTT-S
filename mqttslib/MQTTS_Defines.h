@@ -5,7 +5,7 @@
 /*=================================
  * Device Type Default ARDUINO
  ==================================*/
-//#define LINUX
+#define LINUX
 //#define MBED
 
 //#define XBEE_FLOWCTL_CRTSCTS

@@ -35,25 +35,29 @@
 
 #ifndef ARDUINO
         #include "MQTTS_Defines.h"
-#else
-        #include <MQTTS_Defines.h>
 #endif
-
 
 #if defined(ARDUINO) && ARDUINO >= 100
         #include "Arduino.h"
         #include <inttypes.h>
         #include <ZBeeStack.h>
-#else
-        #if defined(ARDUINO) && ARDUINO < 100
-                #include "WProgram.h"
-                #include <inttypes.h>
-        	#include <ZBeeStack.h>
-        #else
-                #include <sys/time.h>
-                #include <iostream>
-                #include "ZBeeStack.h"
-        #endif
+#endif
+
+#if defined(ARDUINO) && ARDUINO < 100
+        #include "WProgram.h"
+        #include <inttypes.h>
+        #include <ZBeeStack.h>
+#endif
+
+#ifdef LINUX
+        #include <sys/time.h>
+        #include <iostream>
+        #include "ZBeeStack.h"
+#endif
+
+#ifdef MBED
+        #include "mbed.h"
+        #include "ZBeeStack.h"
 #endif
 
                               /* [sec] */
@@ -99,14 +103,14 @@
 #define MQTTS_TOPIC_TYPE_SHORT      0x02
 #define MQTTS_TOPIC_TYPE            0x03
 
-#define MQTTS_FLAG_DUP     0b10000000
-#define MQTTS_FLAG_QOS_0   0b00000000
-#define MQTTS_FLAG_QOS_1   0b00100000
-#define MQTTS_FLAG_QOS_2   0b01000000
-#define MQTTS_FLAG_QOS_N1  0b01100000
-#define MQTTS_FLAG_RETAIN  0b00010000
-#define MQTTS_FLAG_WILL    0b00001000
-#define MQTTS_FLAG_CLEAN   0b00000100
+#define MQTTS_FLAG_DUP     0x80
+#define MQTTS_FLAG_QOS_0   0x0
+#define MQTTS_FLAG_QOS_1   0x20
+#define MQTTS_FLAG_QOS_2   0x40
+#define MQTTS_FLAG_QOS_N1  0xc0
+#define MQTTS_FLAG_RETAIN  0x10
+#define MQTTS_FLAG_WILL    0x08
+#define MQTTS_FLAG_CLEAN   0x04
 
 #define MQTTS_PROTOCOL_ID  0x01
 #define MQTTS_HEADER_SIZE  2
@@ -234,7 +238,7 @@ private:
  ======================================*/
 class MqttsSearchGw : public MqttsMessage {
 public:
-	MqttsSearchGw();
+    MqttsSearchGw();
   ~MqttsSearchGw();
   void setRadius(uint8_t radius);
   uint8_t getRadius();
@@ -291,8 +295,8 @@ private:
   ======================================*/
 class MqttsWillTopicReq : public MqttsMessage  {
 public:
-	MqttsWillTopicReq();
-	~MqttsWillTopicReq();
+    MqttsWillTopicReq();
+    ~MqttsWillTopicReq();
 
 private:
 
@@ -303,17 +307,17 @@ private:
   ======================================*/
 class MqttsWillTopic : public MqttsMessage  {
 public:
-	MqttsWillTopic();
-	~MqttsWillTopic();
-	void setFlags(uint8_t flags);
-	void setWillTopic(MQString* topic);
-	MQString* getWillTopic();
-	uint8_t getQos();
-	bool isWillRequired();
+    MqttsWillTopic();
+    ~MqttsWillTopic();
+    void setFlags(uint8_t flags);
+    void setWillTopic(MQString* topic);
+    MQString* getWillTopic();
+    uint8_t getQos();
+    bool isWillRequired();
 
 private:
-	uint8_t _flags;
-	MQString _ustring;
+    uint8_t _flags;
+    MQString _ustring;
  };
 
 /*=====================================
@@ -321,8 +325,8 @@ private:
   ======================================*/
 class MqttsWillMsgReq : public MqttsMessage  {
 public:
-	MqttsWillMsgReq();
-	~MqttsWillMsgReq();
+    MqttsWillMsgReq();
+    ~MqttsWillMsgReq();
 
 private:
 
@@ -333,10 +337,10 @@ private:
   ======================================*/
 class MqttsWillMsg : public MqttsMessage  {
 public:
-	MqttsWillMsg();
-	~MqttsWillMsg();
-	void setWillMsg(MQString* msg);
-	char* getWillMsg();
+    MqttsWillMsg();
+    ~MqttsWillMsg();
+    void setWillMsg(MQString* msg);
+    char* getWillMsg();
 
 private:
 
@@ -347,21 +351,21 @@ private:
   ======================================*/
 class MqttsRegister : public MqttsMessage  {
 public:
-	MqttsRegister();
-	~MqttsRegister();
-	void setTopicId(uint16_t topicId);
-	uint16_t getTopicId();
-	void setMsgId(uint16_t msgId);
-	uint16_t getMsgId();
-	void setTopicName(MQString* topicName);
-	void setFrame(uint8_t* data, uint8_t len);
-	void setFrame(ZBRxResponse* resp);
-	MQString* getTopicName();
+    MqttsRegister();
+    ~MqttsRegister();
+    void setTopicId(uint16_t topicId);
+    uint16_t getTopicId();
+    void setMsgId(uint16_t msgId);
+    uint16_t getMsgId();
+    void setTopicName(MQString* topicName);
+    void setFrame(uint8_t* data, uint8_t len);
+    void setFrame(ZBRxResponse* resp);
+    MQString* getTopicName();
 
 private:
-	uint16_t _topicId;
-	uint16_t _msgId;
-	MQString _ustring;
+    uint16_t _topicId;
+    uint16_t _msgId;
+    MQString _ustring;
 
  };
 
@@ -370,14 +374,14 @@ private:
   ======================================*/
 class MqttsRegAck : public MqttsMessage  {
 public:
-	MqttsRegAck();
-	~MqttsRegAck();
-	void setTopicId(uint16_t topicId);
-	uint16_t getTopicId();
-	void setMsgId(uint16_t msgId);
-	uint16_t getMsgId();
-	void setReturnCode(uint8_t rc);
-	uint8_t getReturnCode();
+    MqttsRegAck();
+    ~MqttsRegAck();
+    void setTopicId(uint16_t topicId);
+    uint16_t getTopicId();
+    void setMsgId(uint16_t msgId);
+    uint16_t getMsgId();
+    void setReturnCode(uint8_t rc);
+    uint8_t getReturnCode();
 
 private:
 
@@ -388,26 +392,26 @@ private:
   ======================================*/
 class MqttsPublish : public MqttsMessage  {
 public:
-	MqttsPublish();
-	~MqttsPublish();
-	void setFlags(uint8_t flags);
-	uint8_t getFlags();
-	void setTopicId(uint16_t id);
-	uint16_t getTopicId();
-	uint8_t  getTopicType();
-	uint8_t  getQos();
-	bool isRetain();
-	void setMsgId(uint16_t msgId);
-	uint16_t getMsgId();
-	void setData(uint8_t* data, uint8_t len);
-	void setFrame(uint8_t* data, uint8_t len);
-	void setFrame(ZBRxResponse* resp);
-	uint8_t* getData();
+    MqttsPublish();
+    ~MqttsPublish();
+    void setFlags(uint8_t flags);
+    uint8_t getFlags();
+    void setTopicId(uint16_t id);
+    uint16_t getTopicId();
+    uint8_t  getTopicType();
+    uint8_t  getQos();
+    bool isRetain();
+    void setMsgId(uint16_t msgId);
+    uint16_t getMsgId();
+    void setData(uint8_t* data, uint8_t len);
+    void setFrame(uint8_t* data, uint8_t len);
+    void setFrame(ZBRxResponse* resp);
+    uint8_t* getData();
 
 private:
-	uint8_t _flags;
-	uint16_t _topicId;
-	uint16_t _msgId;
+    uint8_t _flags;
+    uint16_t _topicId;
+    uint16_t _msgId;
  };
 
 /*=====================================
@@ -415,14 +419,14 @@ private:
   ======================================*/
 class MqttsPubAck : public MqttsMessage  {
 public:
-	MqttsPubAck();
-	~MqttsPubAck();
-	void setTopicId(uint16_t id);
-	uint16_t getTopicId();
-	void setMsgId(uint16_t msgId);
-	uint16_t getMsgId();
-	void setReturnCode(uint8_t rc);
-	uint8_t getReturnCode();
+    MqttsPubAck();
+    ~MqttsPubAck();
+    void setTopicId(uint16_t id);
+    uint16_t getTopicId();
+    void setMsgId(uint16_t msgId);
+    uint16_t getMsgId();
+    void setReturnCode(uint8_t rc);
+    uint8_t getReturnCode();
 
 
 private:
@@ -433,24 +437,24 @@ private:
   ======================================*/
 class MqttsSubscribe : public MqttsMessage  {
 public:
-	MqttsSubscribe();
-	~MqttsSubscribe();
-	void setFlags(uint8_t flags);
-	uint8_t getFlags();
-	void setMsgId(uint16_t msgId);
-	uint16_t getMsgId();
-	uint16_t getTopicId();
+    MqttsSubscribe();
+    ~MqttsSubscribe();
+    void setFlags(uint8_t flags);
+    uint8_t getFlags();
+    void setMsgId(uint16_t msgId);
+    uint16_t getMsgId();
+    uint16_t getTopicId();
         uint8_t  getQos();
-	void setTopicName(MQString* topicName);
-	MQString* getTopicName();
-	void setTopicId(uint16_t predefinedId);
+    void setTopicName(MQString* topicName);
+    MQString* getTopicName();
+    void setTopicId(uint16_t predefinedId);
         void setFrame(uint8_t* data, uint8_t len);
         void setFrame(ZBRxResponse* resp);
 private:
-	uint16_t _topicId;
-	uint8_t  _flags;
-	uint16_t _msgId;
-	MQString _ustring;
+    uint16_t _topicId;
+    uint8_t  _flags;
+    uint16_t _msgId;
+    MQString _ustring;
  };
 
 /*=====================================
@@ -458,17 +462,17 @@ private:
   ======================================*/
 class MqttsSubAck : public MqttsMessage  {
 public:
-	MqttsSubAck();
-	~MqttsSubAck();
-	void setFlags(uint8_t flags);
-	uint8_t getFlags();
-	uint8_t getQos();
-	void setMsgId(uint16_t msgId);
-	uint16_t getMsgId();
-	void setTopicId(uint16_t topicId);
-	uint16_t getTopicId();
-	void setReturnCode(uint8_t rc);
-	uint8_t getReturnCode();
+    MqttsSubAck();
+    ~MqttsSubAck();
+    void setFlags(uint8_t flags);
+    uint8_t getFlags();
+    uint8_t getQos();
+    void setMsgId(uint16_t msgId);
+    uint16_t getMsgId();
+    void setTopicId(uint16_t topicId);
+    uint16_t getTopicId();
+    void setReturnCode(uint8_t rc);
+    uint8_t getReturnCode();
 
 private:
 
@@ -479,9 +483,9 @@ private:
   ======================================*/
 class MqttsUnsubscribe : public MqttsSubscribe  {
 public:
-	MqttsUnsubscribe();
-	~MqttsUnsubscribe();
-	void setFlags(uint8_t flags);
+    MqttsUnsubscribe();
+    ~MqttsUnsubscribe();
+    void setFlags(uint8_t flags);
 private:
 
  };
@@ -491,10 +495,10 @@ private:
   ======================================*/
 class MqttsUnSubAck : public MqttsMessage  {
 public:
-	MqttsUnSubAck();
-	~MqttsUnSubAck();
-	void setMsgId(uint16_t msgId);
-	uint16_t getMsgId();
+    MqttsUnSubAck();
+    ~MqttsUnSubAck();
+    void setMsgId(uint16_t msgId);
+    uint16_t getMsgId();
 
 private:
 
@@ -505,10 +509,10 @@ private:
  ======================================*/
 class MqttsPingReq : public MqttsMessage  {
 public:
-	MqttsPingReq(MQString* id);
-	~MqttsPingReq();
-	//void setClientId(MQString* id);
-	char* getClientId();
+    MqttsPingReq(MQString* id);
+    ~MqttsPingReq();
+    //void setClientId(MQString* id);
+    char* getClientId();
 private:
 
 };
@@ -518,8 +522,8 @@ private:
  ======================================*/
 class MqttsPingResp : public MqttsMessage  {
 public:
-	MqttsPingResp();
-	~MqttsPingResp();
+    MqttsPingResp();
+    ~MqttsPingResp();
 private:
 
 };
@@ -529,10 +533,10 @@ private:
   ======================================*/
 class MqttsDisconnect : public MqttsMessage  {
 public:
-	MqttsDisconnect();
-	~MqttsDisconnect();
-	void setDuration(uint16_t duration);
-	uint16_t getDuration();
+    MqttsDisconnect();
+    ~MqttsDisconnect();
+    void setDuration(uint16_t duration);
+    uint16_t getDuration();
 private:
 
  };
@@ -605,7 +609,7 @@ public:
     int addPriorityRequest(MqttsMessage* msg);
     void setStatus(uint8_t index, uint8_t status);
     MqttsMessage* getMessage(uint8_t index);
-    uint8_t getStatus(uint8_t index);
+    int  getStatus(uint8_t index);
     uint8_t getCount();
     int deleteRequest(uint8_t index);
     void   deleteAllRequest();

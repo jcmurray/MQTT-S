@@ -38,25 +38,25 @@
 
 #ifndef ARDUINO
         #include "MQTTS_Defines.h"
-#else
-        #include <MQTTS_Defines.h>
 #endif
-
 
 #if defined(ARDUINO) && ARDUINO >= 100
         #include "Arduino.h"
         #include <inttypes.h>
         #include <MQTTS.h>
-#else
-        #if defined(ARDUINO) && ARDUINO < 100
-                #include "WProgram.h"
-                #include <inttypes.h>
-                #include <MQTTS.h>
-        #else
-                #include <sys/time.h>
-                #include <iostream>
-                #include "MQTTS.h"
-        #endif
+#endif
+#if defined(ARDUINO) && ARDUINO < 100
+        #include "WProgram.h"
+        #include <inttypes.h>
+        #include <MQTTS.h>
+#endif
+#ifdef MBED
+        #include "MQTTS.h"
+#endif
+#ifdef LINUX
+        #include <sys/time.h>
+        #include <iostream>
+        #include "MQTTS.h"
 #endif
 
 #define MQTTS_DEBUG_TOPIC_ID 0x0012
@@ -70,12 +70,12 @@ public:
     ~MqttsGateway();
   #ifdef ARDUINO
         void begin(long baudrate);
-  #else
-    #ifndef ZBEE_EMULATION
-        void begin(char* device, unsigned int bauderate);  /* MBED & LINUX */
-    #else
-        void begin(long br = 9600);    /* ZBEE_EMULATION */
-    #endif
+  #endif
+  #ifdef MBED
+        void begin(long baudrate);
+  #endif
+  #ifdef LINUX
+        void begin(char* device, unsigned int bauderate);
   #endif
     Topics* getTopics();
     XBeeAddress64& getRxRemoteAddress64();

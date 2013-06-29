@@ -25,11 +25,13 @@
  *
  *  Created on: 2013/06/28
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  *
  */
- 
-#include <MQTTS_Defines.h>
+
+#define DEBUG_ZBEESTACK
+#define DEBUG_MQTTS
+
 #include <MqttsClientAppFw4Arduino.h>
 
 /*--------------------------------
@@ -47,7 +49,6 @@ MqttsClientApplication app = MqttsClientApplication();
 
 /*-----------  Callback of subscribe to set Current Time ----------*/
 int  setTime(MqttsPublish* msg){
-  debug.println("=============== setUnixTime===========");
   app.setUnixTime(msg);
   return 0;
 }
@@ -62,7 +63,6 @@ MQString willmsg = MQString("willMessage");
 /*----------  Functions for WDT interuption -------*/
 
 void wdtFunc0(){
-  debug.println("wdtFunc0()");
   char payload[4];
   uint32_t tm = app.getUnixTime();
   memcpy(payload, &tm, 4);
@@ -70,7 +70,6 @@ void wdtFunc0(){
 }
 
 void wdtFunc1(){
-  debug.println("wdtFunc1()");
   app.publish(tp2,"67890", 5);
 }
 
@@ -97,13 +96,16 @@ void setup(){
   app.setWillTopic(&willtopic);       // Set WillTopic
   app.setWillMessage(&willmsg);  // Set WillMessage
   app.setKeepAlive(300);                // Set PINGREQ interval
-
+  app.setSleepMode(MQ_MODE_NOSLEEP);
 }
 
 void loop(){    
 
   app.connect();           // create CONNECT message
   app.runConnect();    // Send CONNECT message
+  
+  app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
+  app.run();                                                   // send SUBSCRIBE message
 
 
   app.registerTopic(tp1);  // create REGISTER message
@@ -112,12 +114,8 @@ void loop(){
   app.registerTopic(tp2);  // create REGISTER message
   app.run();                           // send TOPIC message
 
-  app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
-  app.run();                                                   // send SUBSCRIBE message
-
   app.startWdt();    // Start Watch dog timer interuption
   app.runLoop();     // Run Loop
 
 
 }
-

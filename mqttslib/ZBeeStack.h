@@ -38,32 +38,29 @@
 #ifndef ZBEESTACK_H_
 #define ZBEESTACK_H_
 
-#ifdef ARDUINO
-        #include <MQTTS_Defines.h>
-#else
-        #include "MQTTS_Defines.h"
+#ifndef ARDUINO
+    #include "MQTTS_Defines.h"
 #endif
 
 #if defined(ARDUINO) && ARDUINO >= 100
-	#include "Arduino.h"
-	#include <inttypes.h>
+    #include "Arduino.h"
+    #include <inttypes.h>
 #else
-	#if defined(ARDUINO) && ARDUINO < 100
-		#include "WProgram.h"
-		#include <inttypes.h>
+    #if defined(ARDUINO) && ARDUINO < 100
+        #include "WProgram.h"
+        #include <inttypes.h>
     #endif
 #endif /* ARDUINO */
 
 #ifdef MBED
-	#include "mbed.h"
-
-	#define ZB_MBED_SERIAL_TXPIN  ()
-	#define ZB_MBED_SERIAL_RXPIN  ()
+    #include "mbed.h"
+    #define ZB_MBED_SERIAL_TXPIN  p13
+    #define ZB_MBED_SERIAL_RXPIN  p14
 #endif
 
 #ifdef LINUX
-	#include <sys/time.h>
-	#include <iostream>
+    #include <sys/time.h>
+    #include <iostream>
 #endif
 
 #define START_BYTE 0x7e
@@ -313,8 +310,8 @@ public:
 #ifndef ARDUINO
   virtual ~AtCommandRequest();
 #endif
-  uint8_t getFrameData(uint8_t pos);
-  uint8_t getFrameDataLength();
+  virtual uint8_t getFrameData(uint8_t pos);
+  virtual uint8_t getFrameDataLength();
   uint8_t* getCommand();
   uint8_t* getCommandValue();
   uint8_t getCommandValueLength();
@@ -352,8 +349,8 @@ public:
   void setOption(uint8_t option);
   void setPayload(uint8_t *payload);
   void setPayloadLength(uint8_t payLoadLength);
-  uint8_t getFrameData(uint8_t pos);
-  uint8_t getFrameDataLength();
+  virtual uint8_t getFrameData(uint8_t pos);
+  virtual uint8_t getFrameDataLength();
 private:
   void init(XBeeAddress64 addr64,uint16_t addr16, uint8_t broadcastRadius, uint8_t option, uint8_t* payloadPtr, uint8_t payloadLength);
   XBeeAddress64 _addr64;
@@ -428,9 +425,9 @@ private:
 
 
 
-
+#ifdef ARDUINO
 /*============================================
-                XBeeTimer
+       XBeeTimer for Arduino
  ============================================*/
 class XTimer {
 public:
@@ -440,16 +437,46 @@ public:
   bool isTimeUp(void);
   void stop();
 private:
-
-#ifdef ARDUINO
   uint32_t _startTime;
   uint32_t _currentTime;
-#else
-  struct timeval _startTime;
-#endif
   uint32_t _millis;
 };
+#endif
 
+#ifdef MBED
+/*============================================
+    XBeeTimer  for MBED
+ ============================================*/
+class XTimer {
+public:
+    XTimer();
+    void start(uint32_t msec = 0);
+    bool isTimeUp(uint32_t msec);
+    bool isTimeUp(void);
+    void stop();
+private:
+    Timer    _timer;
+    uint32_t _millis;
+};
+
+#endif
+
+#ifdef LINUX
+/*============================================
+                XBeeTimer
+ ============================================*/
+class XTimer {
+public:
+    XTimer();
+    void start(uint32_t msec = 0);
+    bool isTimeUp(uint32_t msec);
+    bool isTimeUp(void);
+    void stop();
+private:
+    struct tm _startTime;
+    uint32_t _millis;
+};
+#endif
 
 /*============================================
                  XBee

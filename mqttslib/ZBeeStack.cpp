@@ -25,15 +25,13 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  *
- *  Created on: 2013/06/22
+ *  Created on: 2013/06/29
  *  Author:     Tomoaki YAMAGUCHI
  *  Version:    1.0.4
  *
  */
 #ifndef ARDUINO
         #include "MQTTS_Defines.h"
-#else
-        #include <MQTTS_Defines.h>
 #endif
 
 
@@ -51,8 +49,8 @@
         #include "mbed.h"
         #include "ZBeeStack.h"
 
-    #ifdef DEBUG_ZBEESTACK
-                    extern Serial debug;
+        #ifdef DEBUG_ZBEESTACK
+            extern Serial debug;
         #endif
 #endif /* MBED */
 
@@ -95,10 +93,10 @@ long getLong(uint8_t* pos){
 }
 
 void setLong(uint8_t* pos, uint32_t val){
-    val = (uint32_t(*(pos + 3)) << 24) +
-        (uint32_t(*(pos + 2)) << 16) +
-        (uint32_t(*(pos + 1)) <<  8) +
-        *pos;
+    *pos++ = (val >> 24) & 0xff;
+    *pos++ = (val >> 16) & 0xff;
+    *pos++ = (val >>  8) & 0xff;
+    *pos   =  val & 0xff;
 }
 
 /*=========================================
@@ -862,9 +860,37 @@ void XTimer::stop(){
     _millis = 0;
 }
 
-#else
+#endif
+#ifdef MBED
 /**
- *   for LINUX & MBED
+ *   for MBED
+ */
+XTimer::XTimer(){
+    stop();
+}
+
+void XTimer::start(uint32_t msec){
+    _timer.start();
+    _millis = msec;
+}
+
+bool XTimer::isTimeUp(){
+    return isTimeUp(_millis);
+}
+
+bool XTimer::isTimeUp(uint32_t msec){
+    return _timer.read_ms() > msec;
+}
+
+void XTimer::stop(){
+    _timer.stop();
+    _millis = 0;
+}
+#endif
+
+#ifdef LINUX
+/**
+ *   for LINUX
  */
 XTimer::XTimer(){
   stop();
@@ -897,7 +923,7 @@ void XTimer::stop(){
   _millis = 0;
 }
 
-#endif  /* ARDUINO */
+#endif
 
 /*=========================================
        Class SerialPort
@@ -951,7 +977,7 @@ void SerialPort::flush(void){
  *  For MBED
  */
 SerialPort::SerialPort(){
-  _serial = new Serial(ZB_MBED_SERIAL_TXPIN, ZB_MBED_RXPIN);
+  _serial = new Serial(ZB_MBED_SERIAL_TXPIN, ZB_MBED_SERIAL_RXPIN);
 }
 
 void SerialPort::begin(long baudrate){
@@ -965,7 +991,6 @@ bool SerialPort::send(unsigned char b){
         debug.printf( " S:0x%x", b);
 #endif
       return true;
-  }
 }
 
 bool SerialPort::recv(unsigned char* buf){
@@ -981,7 +1006,7 @@ bool SerialPort::recv(unsigned char* buf){
 }
 
 void SerialPort::flush(void){
-  _serial->flush();
+  //_serial->flush();
 }
 
 #endif /* MBED */
@@ -1269,7 +1294,6 @@ int ZBeeStack::packetHandle(){
                 return _returnCode;
             }
             return PACKET_ERROR_NODATA;
-            break;
 
         case ZB_SEND_REQ_TX:
             if ( _rxDataReady && (_rxCallbackPtr != NULL)){
@@ -1278,7 +1302,6 @@ int ZBeeStack::packetHandle(){
             }
             _xbee.send(_txRequest);
             return PACKET_CORRECT;
-            break;
 
         case ZB_SEND_REQ_AT:
             _respWaitStat = ZB_WAIT_AT_RESP;
@@ -1288,7 +1311,6 @@ int ZBeeStack::packetHandle(){
 
         default:
             return PACKET_ERROR_UNKOWN;
-            break;
         }
     }
     return PACKET_ERROR_NODATA;
