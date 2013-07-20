@@ -473,7 +473,7 @@ public:
     bool isTimeUp(void);
     void stop();
 private:
-    struct tm _startTime;
+    struct timeval _startTime;
     uint32_t _millis;
 };
 #endif
