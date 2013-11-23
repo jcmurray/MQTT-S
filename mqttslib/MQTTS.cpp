@@ -824,7 +824,7 @@ uint16_t MqttsSubscribe::getMsgId(){
 }
 
 void MqttsSubscribe::setTopicName(MQString* data){
-    setLength(6 + data->getDataLength());
+    setLength(5 + data->getDataLength());
     allocateBody();
     data->writeBuf(getBody() + 3);
     setMsgId(_msgId);
@@ -919,7 +919,7 @@ void MqttsUnsubscribe::setFlags(uint8_t flags){
 }
 
 void MqttsUnsubscribe::setTopicName(MQString* data){
-    setLength(6 + data->getDataLength());
+    setLength(5 + data->getDataLength());
     allocateBody();
     data->writeBuf(getBody() + 3);
     setMsgId(_msgId);
