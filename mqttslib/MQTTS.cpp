@@ -23,14 +23,16 @@
  * THE SOFTWARE.
  *
  *
- *  Created on: 2013/06/21
+ *  Created on: 2013/11/23
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.1
+ *     Version: 2.0.0
  *
  */
 
 #ifndef ARDUINO
         #include "MQTTS_Defines.h"
+#else
+        #include <MQTTS_Arduino_defs.h>
 #endif
 
 
@@ -38,7 +40,7 @@
   #include <SoftwareSerial.h>
   #include <MQTTS.h>
 
-  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
+  #ifdef DEBUG
     extern SoftwareSerial debug;
   #endif
 
@@ -47,10 +49,6 @@
 #ifdef MBED
   #include "mbed.h"
   #include "MQTTS.h"
-
-  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
-    extern Serial debug;
-  #endif
 #endif  /* MBED */
 
 #ifdef LINUX
@@ -782,7 +780,7 @@ MqttsSubscribe::~MqttsSubscribe(){
 }
 
 void MqttsSubscribe::setFlags(uint8_t flags){
-    _flags = flags  & 0xe3;
+    _flags = flags & 0xe3;
     if (_msgBuff){
               getBody()[0] = _flags;
       }
@@ -824,12 +822,13 @@ uint16_t MqttsSubscribe::getMsgId(){
     }
     return _msgId;
 }
+
 void MqttsSubscribe::setTopicName(MQString* data){
     setLength(6 + data->getDataLength());
     allocateBody();
     data->writeBuf(getBody() + 3);
     setMsgId(_msgId);
-    setFlags(_flags | MQTTS_TOPIC_TYPE_NORMAL);
+    setFlags((_flags & 0xe0) | MQTTS_TOPIC_TYPE_SHORT);
     _ustring.copy(data);
 }
 
@@ -915,9 +914,19 @@ MqttsUnsubscribe::~MqttsUnsubscribe(){
 }
 void MqttsUnsubscribe::setFlags(uint8_t flags){
   if (_msgBuff){
-              getBody()[0] = flags & 0xe3;
+              getBody()[0] = flags & 0x03;
     }
 }
+
+void MqttsUnsubscribe::setTopicName(MQString* data){
+    setLength(6 + data->getDataLength());
+    allocateBody();
+    data->writeBuf(getBody() + 3);
+    setMsgId(_msgId);
+    setFlags((_flags & 0xe0) | MQTTS_TOPIC_TYPE_SHORT);
+    _ustring.copy(data);
+}
+
 /*=====================================
          Class MqttsUnSubAck
   ======================================*/
@@ -1232,12 +1241,8 @@ int SendQue::addRequest(MqttsMessage* msg){
               #ifdef ARDUINO
                 debug.print("\nAdd SendQue MsgType = 0x");
                 debug.println(msg->getType(), HEX);
-              #endif
-              #ifdef MBED
-                debug.printf("\nAdd SendQue MsgType = 0x%x\n", msg->getType());
-              #endif
-              #ifdef LINUX
-                printf("\nAdd SendQue MsgType = 0x%x\n", msg->getType());
+              #else
+                DPRINTF("\nAdd SendQue MsgType = 0x%x\r\n", msg->getType());
               #endif
           #endif /*DEBUG_MQTTS*/
         _msg[_queCnt] =new MqttsMessage();
@@ -1253,12 +1258,8 @@ int SendQue::addPriorityRequest(MqttsMessage* msg){
               #ifdef ARDUINO
                 debug.print("\nAdd SendQue Top MsgType = 0x");
                 debug.println(msg->getType(), HEX);
-              #endif
-              #ifdef MBED
-                debug.printf("\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
-              #endif
-              #ifdef LINUX
-                printf("\nAdd SendQue Top MsgType = 0x%x\n", msg->getType());
+              #else
+                DPRINTF("\nAdd SendQue Top MsgType = 0x%x\r\n", msg->getType());
               #endif
           #endif /*DEBUG_MQTTS*/
         for(int i = _queCnt; i > 0; i--){
@@ -1278,13 +1279,8 @@ int SendQue::deleteRequest(uint8_t index){
                #ifdef ARDUINO
                  debug.println("\nDelete SendQue");
                #endif
-          #ifdef MBED
-                 debug.printf("\nDelete SendQue\n");
-          #endif
-          #ifdef LINUX
-                 printf("\nDelete SendQue\n");
-
-                 #endif
+          #else
+                 DPRINTF("\nDelete SendQue\r\n");
           #endif /*DEBUG_MQTTS*/
         delete _msg[index];
         _queCnt--;
