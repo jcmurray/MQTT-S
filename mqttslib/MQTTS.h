@@ -24,9 +24,9 @@
  * THE SOFTWARE.*
  *
  *
- *  Created on: 2013/06/19
+ *  Created on: 2013/11/23
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.1
+ *     Version: 2.0.0
  *
  */
 
@@ -450,7 +450,7 @@ public:
     void setTopicId(uint16_t predefinedId);
         void setFrame(uint8_t* data, uint8_t len);
         void setFrame(ZBRxResponse* resp);
-private:
+protected:
     uint16_t _topicId;
     uint8_t  _flags;
     uint16_t _msgId;
@@ -486,6 +486,7 @@ public:
     MqttsUnsubscribe();
     ~MqttsUnsubscribe();
     void setFlags(uint8_t flags);
+    void setTopicName(MQString* data);
 private:
 
  };
