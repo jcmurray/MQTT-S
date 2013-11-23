@@ -19,10 +19,12 @@ Usage
 ------
 ####Minimum requirements
   Three XBee S2 devices,  a coordinator, a gateway and a client.
+  mosquitto broker
+  TomyGateway   ( in MQTT-S-Gateway Repository)
 
 ####1) Start Gateway  (argument is a device which XBee dongle connected.)  
     
-    $ MqttsGatewayApp /dev/ttyUSB0      
+    $ TomyGateway /dev/ttyUSB0  Broker's IP Address  PortNo   
   
 ####2) Start Client   (argument is a device which XBee dongle connected.)  
     
@@ -57,11 +59,7 @@ How to Build (Requiered source code list)
 *  mqttslib    
 *  MqttsClientApp.cpp  
 
-####2) Linux Gateway
-*  mqttslib
-*  MqttsGatewayApp.cpp
-  
-####3) Arduino Client
+####2) Arduino Client
 _Copy mqttslib into Aruino Librally directory._
 
 _Copy this file into Aruino sketch directory._
@@ -73,10 +71,8 @@ Module descriptions
 ####1) MqttsClientApp.cpp  
 Client application sample which is used for debug.
 
-####2) MqttsGatewayApp.cpp  
-  Gateway application for debug. 
   
-####3) MqttsClientFwApp.ino
+####2) MqttsClientFwApp.ino
   MqttsClient sample application for Arduino. 
     
 ###Modules in mqttslib
@@ -100,20 +96,17 @@ Client application sample which is used for debug.
     mqtts.disconnect();
 
     
-####2) MqttsGateway.cpp
-  Gateway dummy Class for debug. Not real gateway.
-    
-####3) MqttsClientAppFw4Arduino.cpp
+####2) MqttsClientAppFw4Arduino.cpp
   Application framework for Arduino.
   Interupt and  watch dog timer are supported.
       
-####4) MQTTS.cpp 
+####3) MQTTS.cpp 
   MQTT-S messages classes and some classes for client and Gateway.
     
-####5) ZBeeStack.cpp
+####4) ZBeeStack.cpp
   XBee control classes for MQTT-S
     
-####6) Mqtts_Defines.h
+####5) Mqtts_Defines.h
   Default setting is Arduino.  (Both systems are comented out)  
   select the system and uncoment it.
     
@@ -137,8 +130,5 @@ Client application sample which is used for debug.
 
 * Author:    Tomoaki YAMAGUCHI
 * Email:     tomoaki@tomy-tech.com
-* Twitter:   [@ty4tw]
 
 
-
-[@ty4tw]:                     http://twitter.com/ty4tw
