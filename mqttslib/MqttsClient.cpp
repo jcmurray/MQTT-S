@@ -609,7 +609,7 @@ int MqttsClient::subscribe(MQString* topic, TopicCallback callback){
         mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
     }else{
         mqttsMsg.setTopicName(topic);
-        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
+        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
         _topics.addTopic(topic);
         _topics.setCallback(topic, callback);
     }
