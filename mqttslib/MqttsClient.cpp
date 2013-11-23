@@ -499,8 +499,9 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
         _respTimer.start(packetReadTimeout * 1000);
 
         while(!_respTimer.isTimeUp()){
-            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ ) ||
-                              getMsgRequestType() == MQTTS_TYPE_PUBACK   ||
+            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ )  ||
+                              getMsgRequestType() == MQTTS_TYPE_PUBACK     ||
+                              getMsgRequestType() == MQTTS_TYPE_DISCONNECT ||
                               getMsgRequestStatus() == MQTTS_MSG_COMPLETE ){
                 _sendQ->deleteRequest(0);
                 _gwHdl.setLastSendTime();
