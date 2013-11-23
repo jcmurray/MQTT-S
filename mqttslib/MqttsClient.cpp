@@ -25,19 +25,21 @@
  * THE SOFTWARE.*
  *
  * 
- *  Created on: 2013/06/19
+ *  Created on: 2013/11/23
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.1
+ *     Version: 2.0.0
  *
  */
 #ifndef ARDUINO
-  #include "MQTTS_Defines.h"
+        #include "MQTTS_Defines.h"
+#else
+        #include <MQTTS_Arduino_defs.h>
 #endif
 
 #ifdef ARDUINO
   #include <MqttsClient.h>
 
-  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
+  #ifdef DEBUG
         #include <SoftwareSerial.h>
         extern SoftwareSerial debug;
   #endif
@@ -47,10 +49,6 @@
 #ifdef MBED
   #include "mbed.h"
   #include "MqttsClient.h"
-
-  #if defined(DEBUG_ZBEESTACK) || defined(DEBUG_MQTTS)
-        extern Serial debug;
-  #endif
 #endif  /* MBED */
 
 #ifdef LINUX
@@ -499,9 +497,9 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
         _respTimer.start(packetReadTimeout * 1000);
 
         while(!_respTimer.isTimeUp()){
-            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ )  ||
-                              getMsgRequestType() == MQTTS_TYPE_PUBACK     ||
-                              getMsgRequestType() == MQTTS_TYPE_DISCONNECT ||
+            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ ) ||
+                              getMsgRequestType() == MQTTS_TYPE_PUBACK   ||
+                              getMsgRequestType() == MQTTS_TYPE_DISCONNECT   ||
                               getMsgRequestStatus() == MQTTS_MSG_COMPLETE ){
                 _sendQ->deleteRequest(0);
                 _gwHdl.setLastSendTime();
@@ -635,11 +633,12 @@ int MqttsClient::unsubscribe(MQString* topic){
     uint16_t topicId = _topics.getTopicId(topic);
     if (topicId){
         mqttsMsg.setTopicId(topicId);
+        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
     }else{
         mqttsMsg.setTopicName(topic);
+        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
     }
     mqttsMsg.setMsgId(getNextMsgId());
-    mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
     return requestSendMsg((MqttsMessage*)&mqttsMsg);
 }
 
@@ -704,19 +703,8 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  PUBLISH  --------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_PUBLISH){
-
-        #ifdef DEBUG_MQTTS
-            #ifdef ARDUINO
-              debug.println("PUBLISH Received");
-            #endif
-            #ifdef MBED
-                debug.printf("PUBLISH received\n");
-            #endif
-            #ifdef LINUX
-                printf("PUBLISH received\n");
-            #endif
-        #endif  /* DEBUG_MQTTS */
-
+        DPRINTLN("PUBLISH Received");
+        DPRINTF("PUBLISH received\r\n");
         MqttsPublish mqMsg = MqttsPublish();
         mqMsg.setFrame(recvMsg);
         if ( _gwHdl.getAddress16() == getRxRemoteAddress16()){
@@ -731,21 +719,10 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_PUBACK && getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK){
         MqttsPubAck mqMsg = MqttsPubAck();
         copyMsg(&mqMsg, recvMsg);
-
-        #ifdef DEBUG_MQTTS
-            #ifdef ARDUINO
-              debug.print("\nPUBACK received ReturnCode=");
-              debug.println(mqMsg.getReturnCode(),HEX);
-              debug.println();
-            #endif
-            #ifdef MBED
-                debug.printf("\nPUBACK received ReturnCode=%d\n", mqMsg.getReturnCode());
-            #endif
-            #ifdef LINUX
-                printf("\nPUBACK received ReturnCode=%d\n", mqMsg.getReturnCode());
-            #endif
-        #endif /* DEBUG_MQTTS */
-
+        DPRINT("\nPUBACK received ReturnCode=");
+        DPRINTLN(mqMsg.getReturnCode(),HEX);
+        DPRINTLN();
+        DPRINTF("\nPUBACK received ReturnCode=%d\r\n", mqMsg.getReturnCode());
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 3)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
@@ -761,17 +738,9 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  PINGRESP  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_PINGRESP){
-        #ifdef DEBUG_MQTTS
-            #ifdef ARDUINO
-                debug.println(" PINGRESP received");
-            #endif
-            #ifdef MBED
-                debug.printf(" PINGRESP received\n");
-            #endif
-            #ifdef LINUX
-                printf(" PINGRESP received\n");
-            #endif
-        #endif /* DEBUG_MQTTS */
+        DPRINT(" PINGRESP received");
+
+        DPRINTF(" PINGRESP received\r\n");
 
         _gwHdl.recvPingResp();
         if (getMsgRequestType() == MQTTS_TYPE_PINGREQ){
@@ -780,32 +749,16 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  PINGREQ  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_PINGREQ){
-          #ifdef DEBUG_MQTTS
-             #ifdef ARDUINO
-                 debug.println(" PINGREQ received");
-             #endif
-                 #ifdef MBED
-                 debug.printf(" PINGREQ received\n");
-                 #endif
-                 #ifdef LINUX
-                 printf(" PINGREQ received\n");
-             #endif
-          #endif /* DEBUG_MQTTS */
+       DPRINTLN(" PINGREQ received");
+
+       DPRINTF(" PINGREQ received\r\n");
         pingResp();
 
 /*---------  ADVERTISE  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_ADVERTISE){
-        #ifdef DEBUG_MQTTS
-            #ifdef ARDUINO
-                debug.println(" ********** ADVERTISE received");
-            #endif
-                #ifdef MBED
-                debug.printf(" ********** ADVERTISE received\n");
-                #endif
-                #ifdef LINUX
-                printf(" ********** ADVERTISE received\n");
-            #endif
-        #endif /* DEBUG_MQTTS */
+        DPRINTLN(" ********** ADVERTISE received");
+
+        DPRINTF(" ********** ADVERTISE received\r\n");
 
         MqttsAdvertise mqMsg = MqttsAdvertise();
         copyMsg(&mqMsg, recvMsg);
@@ -813,17 +766,8 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  GWINFO  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_GWINFO){
-          #ifdef DEBUG_MQTTS
-             #ifdef ARDUINO
-                 debug.println(" GWINFO received");
-             #endif
-                 #ifdef MBED
-                 debug.printf(" GWINFO received\n");
-                 #endif
-                 #ifdef LINUX
-                 printf(" GWINFO received\n");
-             #endif
-          #endif /* DEBUG_MQTTS */
+        DPRINTLN(" GWINFO received");
+        DPRINTF(" GWINFO received\r\n");
         MqttsGwInfo mqMsg = MqttsGwInfo();
         copyMsg(&mqMsg, recvMsg);
         _gwHdl.recvGwInfo(&mqMsg);
@@ -833,17 +777,8 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  CANNACK  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_CONNACK){
-          #ifdef DEBUG_MQTTS
-              #ifdef ARDUINO
-                  debug.println(" CONNACK received");
-              #endif
-                  #ifdef MBED
-                  debug.printf(" CONNACK received\n");
-                  #endif
-                  #ifdef LINUX
-                  printf(" CONNACK received\n");
-              #endif
-          #endif /* DEBUG_MQTTS */
+        DPRINTLN(" CONNACK received");
+        DPRINTF(" CONNACK received\r\n");
         if (_qos == 1 && (getMsgRequestType() == MQTTS_TYPE_CONNECT ||
                          getMsgRequestType() == MQTTS_TYPE_WILLMSG)){
             MqttsConnack mqMsg = MqttsConnack();
@@ -863,17 +798,8 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  REGISTER  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_REGISTER){
-          #ifdef DEBUG_MQTTS
-              #ifdef ARDUINO
-                  debug.println(" REGISTER received");
-              #endif
-              #ifdef MBED
-                    debug.printf(" REGISTER received\n");
-              #endif
-              #ifdef LINUX
-                    printf(" REGISTER received\n");
-              #endif
-          #endif /* DEBUG_MQTTS */
+        DPRINTLN(" REGISTER received");
+        DPRINTF(" REGISTER received\r\n");
         MqttsRegister mqMsg = MqttsRegister();
 
         mqMsg.setFrame(recvMsg);
@@ -889,17 +815,8 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  REGACK  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_REGACK){
-          #ifdef DEBUG_MQTTS
-             #ifdef ARDUINO
-                 debug.println(" REGACK received");
-             #endif
-             #ifdef MBED
-                   debug.printf(" REGACK received\n");
-             #endif
-             #ifdef LINUX
-                   printf(" REGACK received\n");
-             #endif
-          #endif /* DEBUG_MQTTS */
+         DPRINTLN(" REGACK received");
+         DPRINTF(" REGACK received\r\n");
 
         if (getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK &&
             getMsgRequestType() == MQTTS_TYPE_REGISTER){
@@ -928,20 +845,11 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
         MqttsSubAck mqMsg = MqttsSubAck();
         copyMsg(&mqMsg, recvMsg);
 
-        #ifdef DEBUG_MQTTS
-           #ifdef ARDUINO
-               debug.println();
-               debug.print("SUBACK ReturnCode=");
-               debug.println(mqMsg.getReturnCode(),HEX);
-           #endif
-           #ifdef MBED
-               debug.printf("\nSUBACK ReturnCode=%d\n", mqMsg.getReturnCode());
-           #endif
-           #ifdef LINUX
-               printf("\nSUBACK ReturnCode=%d\n", mqMsg.getReturnCode());
-           #endif
-       #endif /* DEBUG_MQTTS */
+        DPRINTLN();
+        DPRINT("SUBACK ReturnCode=");
+        DPRINTLN(mqMsg.getReturnCode(),HEX);
 
+        DPRINTF("\nSUBACK ReturnCode=%d\r\n", mqMsg.getReturnCode());
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 1)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
@@ -960,17 +868,8 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  UNSUBACK  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_UNSUBACK && getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK){
-          #ifdef DEBUG_MQTTS
-             #ifdef ARDUINO
-                 debug.println(" UNSUBACK received");
-             #endif
-             #ifdef MBED
-                   debug.printf(" UNSUBACK received\n");
-             #endif
-             #ifdef LINUX
-                   printf(" UNSUBACK received\n");
-             #endif
-          #endif /* DEBUG_MQTTS */
+        DPRINTLN(" UNSUBACK received");
+        DPRINTF(" UNSUBACK received\r\n");
         MqttsUnSubAck mqMsg = MqttsUnSubAck();
         copyMsg(&mqMsg, recvMsg);
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 1)){
@@ -979,35 +878,16 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  DISCONNECT  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_DISCONNECT && getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK){
-                #ifdef DEBUG_MQTTS
-                   #ifdef ARDUINO
-                       debug.println(" DISCONNECT received");
-                   #endif
-                   #ifdef MBED
-                         debug.printf(" DISCONNECT received\n");
-                   #endif
-                   #ifdef LINUX
-                         printf(" UNSUBACK received\n");
-                   #endif
-               #endif /* DEBUG_MQTTS */
-
+         DPRINTLN(" DISCONNECT received");
+         DPRINTF(" UNSUBACK received\r\n");
          setMsgRequestStatus(MQTTS_MSG_COMPLETE);
          _gwHdl.setStatus(MQTTS_GW_DISCONNECTED);
 
 
 /*---------  WILLTOPICREQ  ----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_WILLTOPICREQ){
-          #ifdef DEBUG_MQTTS
-              #ifdef ARDUINO
-                  debug.println(" WILLTOPICREQ received");
-              #endif
-              #ifdef MBED
-                    debug.printf(" WILLTOPICREQ received\n");
-              #endif
-              #ifdef LINUX
-                    printf(" WILLTOPICREQ received\n");
-              #endif
-          #endif /* DEBUG_MQTTS */
+        DPRINTLN(" WILLTOPICREQ received");
+        DPRINTF(" WILLTOPICREQ received\r\n");
         if (getMsgRequestType() == MQTTS_TYPE_CONNECT){
             //setMsgRequestStatus(MQTTS_MSG_COMPLETE);
             clearMsgRequest();
@@ -1023,17 +903,8 @@ void MqttsClient::recieveMessageHandler(ZBRxResponse* recvMsg, int* returnCode){
 
 /*---------  WILLMSGREQ  -----------*/
     }else if (recvMsg->getData()[1] == MQTTS_TYPE_WILLMSGREQ){
-        #ifdef DEBUG_MQTTS
-           #ifdef ARDUINO
-               debug.println(" WILLMSGREQ received");
-           #endif
-           #ifdef MBED
-                 debug.printf(" WILLMSGREQ received\n");
-           #endif
-           #ifdef LINUX
-                 printf(" WILLMSGREQ received\n");
-           #endif
-         #endif /* DEBUG_MQTTS */
+        DPRINTLN(" WILLMSGREQ received");
+        DPRINTF(" WILLMSGREQ received\r\n");
         if (getMsgRequestType() == MQTTS_TYPE_WILLTOPIC){
             //setMsgRequestStatus(MQTTS_MSG_COMPLETE);
             clearMsgRequest();
