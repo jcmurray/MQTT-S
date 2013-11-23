@@ -1,9 +1,7 @@
 MQTT-S
 ======
   MQTT-S Client over XBee  (running on linux and Arduino)  
-  MQTT-S Dummy Gateway for debug 
   
-  _Real gateway running on LINUX and MBED is my future project._
 
 Supported functions
 -------------------
