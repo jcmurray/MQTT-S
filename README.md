@@ -20,9 +20,9 @@ Usage
   mosquitto broker
   TomyGateway   ( in MQTT-S-Gateway Repository)
 
-####1) Start Gateway  (argument is a device which XBee dongle connected.)  
+####1) Start Gateway  (see  TomoakiYAMAGUCHI/MQTT-S-Gateway)  
     
-    $ TomyGateway /dev/ttyUSB0  Broker's IP Address  PortNo   
+    $ TomyGateway /dev/ttyUSB0  [Broker's IP Address]  [PortNo]   
   
 ####2) Start Client   (argument is a device which XBee dongle connected.)  
     
