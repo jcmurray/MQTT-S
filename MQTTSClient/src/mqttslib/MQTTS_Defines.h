@@ -20,12 +20,15 @@
  ==================================*/
 #ifdef XBEE_DEBUG
 #define DPRINTF(...)  printf(__VA_ARGS__)
+#define DPRINTW(...)  printf(__VA_ARGS__)
 #else
 #define DPRINTF(...)
+#define DPRINTW(...)
 #endif
 
 #define DPRINT(...)
 #define DPRINTLN(...)
+
 
 /*=================================
  *    Data Type

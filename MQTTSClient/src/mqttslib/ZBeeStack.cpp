@@ -105,15 +105,13 @@ void setLong(uint8_t* pos, uint32_t val){
 ZBeeStack::ZBeeStack(){
 	_respWaitStat = NoResp;
 	_sendReqStat = NoReq;
-	_rxDataReady = false;
 	_rxCallbackPtr = NULL;
-	_rxData = NULL;
 	_returnCode = 0;
 	_response = ZBResponse();
 	_pos = 0;
 	_escape = false;
 	_checksumTotal = 0;
-	_response.setPayload(_payloadPtr);
+	_response.setPayload(_responsePayload);
 	_serialPort = 0;
 	_gwAddress64.setMsb(0);
 	_gwAddress64.setLsb(0);
@@ -167,20 +165,17 @@ void ZBeeStack::setRxHandler(void (*callbackPtr)(ZBResponse* data, int* returnCo
 }
 
 XBeeAddress64& ZBeeStack::getRxRemoteAddress64(){
-  return _rxData->getRemoteAddress64();
+  return _rxResp.getRemoteAddress64();
 }
 
 uint16_t ZBeeStack::getRxRemoteAddress16(){
-  return _rxData->getRemoteAddress16();
+  return _rxResp.getRemoteAddress16();
 }
 
 ZBResponse* ZBeeStack::getRxResponse(){
   return &_rxResp;
 }
 
-ZBResponse* ZBeeStack::getRxData(){
-  return _rxData;
-}
 
 void ZBeeStack::getResponse(ZBResponse& response){
   response.setMsbLength(_response.getMsbLength());
@@ -188,79 +183,45 @@ void ZBeeStack::getResponse(ZBResponse& response){
   response.setApiId(_response.getApiId());
   response.setPayloadLength(_response.getPayloadLength());
   response.setPayload(_response.getPayload());
-}
+  response.setOption(_response.getOption());
+  response.setRemoteAddress16(_response.getRemoteAddress16());
+  response.getRemoteAddress64().setMsb(_response.getRemoteAddress64().getMsb());
+  response.getRemoteAddress64().setLsb(_response.getRemoteAddress64().getLsb());
 
-ZBResponse& ZBeeStack::getResponse(){
-  return _response;
 }
-
 
 int ZBeeStack::packetHandle(){
-	/*
-    if (_respWaitStat == NoResp){
-        if(!readApiFrame(PACKET_TIMEOUT)){
-            if (_sendReqStat == NoReq ){
-                return PACKET_ERROR_NODATA;
-            }
-        }
-    }else{
-        if (!readApiFrame(PACKET_TIMEOUT_RESP)){
-            return PACKET_ERROR_NODATA;
-        }
-    }
-    */
+	_returnCode = PACKET_ERROR_NODATA;
+
 	if(readApiFrame(PACKET_TIMEOUT_RESP)){
 
-		if(getResponse().getApiId() == ZB_API_RESPONSE){
-			if (_respWaitStat == NoResp || _respWaitStat == RxResp) {
-				_rxResp = getResponse();
-				if (_rxResp.isError()){
-					return PACKET_ERROR_RESPONSE;
-				}else{    //  Copy Data
-					for ( int i = 0; i < _rxResp.getFrameDataLength(); i++){
-						_rxDataBuf[i] = _rxResp.getFrameData()[i];
-					}
-					_rxResp.setFrameData(_rxDataBuf);
-					_rxData = &_rxResp;
-					_rxDataReady = true;
-				}
-			}
+		if(_response.getApiId() == ZB_API_RESPONSE){
+			if (!_response.isError()){
+				getResponse(_rxResp);
 
-			/* ===== Response Callback ====== */
-			if (_respWaitStat == RxResp) {
-				if (_rxDataReady && (_rxCallbackPtr != NULL)){
-					_rxCallbackPtr(getRxData(), &_returnCode);
-					_rxDataReady = false;
-					return _returnCode;
+				for ( int i = 0; i < _rxResp.getPayloadLength(); i++){
+					_rxPayloadBuf[i] = _rxResp.getPayload()[i];
+				}
+				_rxResp.setPayload(_rxPayloadBuf);
+
+				if (_rxCallbackPtr != NULL){
+					_rxCallbackPtr(&_rxResp, &_returnCode);
 				}
 			}
 		}
 	}
 
-	/* ===== Send Packet  ====== */
-
-	if(_sendReqStat == UcastReq) {
-		if ( _rxDataReady && (_rxCallbackPtr != NULL)){
-			_rxCallbackPtr(getRxData(), &_returnCode);
-			_rxDataReady = false;
-		}
+	if(_sendReqStat != NoReq) {
 		sendZBRequest(_txRequest);
-		return PACKET_SENDED;
-
-	}else if(_sendReqStat == BcastReq) {
-		if ( _rxDataReady && (_rxCallbackPtr != NULL)){
-			_rxCallbackPtr(getRxData(), &_returnCode);
-			_rxDataReady = false;
-		}
-		sendZBRequest(_txRequest);
-		return PACKET_SENDED;
+		_returnCode = PACKET_SENDED;
 	}
-    return PACKET_ERROR_NODATA;
+    return _returnCode;
 }
 
 
 void ZBeeStack::setGwAddress(XBeeAddress64& addr64, uint16_t addr16){
-	_gwAddress64 = addr64;
+	_gwAddress64.setMsb(addr64.getMsb());
+	_gwAddress64.setLsb(addr64.getLsb());
 	_gwAddress16 = addr16;
 }
 
@@ -277,14 +238,22 @@ bool ZBeeStack::readApiFrame(uint16_t timeoutMillsec){
 
         readApiFrame();
 
-        if(getResponse().isAvailable()){
-            DPRINTLN("<== CheckSum OK");
-            DPRINTF("<== CheckSum OK\r\n" );
-            return true;
-        }else if(getResponse().isError()){
+        if(_response.isAvailable()){
+            DPRINTW("<== CheckSum OK\r\n");
+            if( (_response.getOption() & 0x02 ) == 0x02 ){
+            	return true;
+            }else if(_gwAddress16 &&
+				(_gwAddress64.getMsb() != _response.getRemoteAddress64().getMsb()) &&
+				(_gwAddress64.getLsb() != _response.getRemoteAddress64().getLsb())){
+            	DPRINTW("  Sender is not Gateway!\r\n" );
+            	return false;
+            }else{
+                return true;
+            }
+        }else if(_response.isError()){
             DPRINT("  <== Packet Error Code = ");
-            DPRINT(getResponse().getErrorCode(), DEC);
-            DPRINTF("  <== Packet Error Code = %d\r\n",getResponse().getErrorCode() );
+            DPRINT(_response.getErrorCode(), DEC);
+            DPRINTF("  <== Packet Error Code = %d\r\n",_response.getErrorCode() );
             return false;
         }
     }
@@ -292,115 +261,106 @@ bool ZBeeStack::readApiFrame(uint16_t timeoutMillsec){
 }
 
 void ZBeeStack::readApiFrame(){
-	uint32_t addr32 = 0;
-	uint16_t addr16 = 0;
-	XBeeAddress64 addr64 = XBeeAddress64();
 
 	if (_response.isAvailable() || _response.isError()){
 	  resetResponse();
 	}
 
 	while(read(&_byteData )){
-	  // Check Start Byte
-	  if( _pos > 0 && _byteData == START_BYTE){
+		// Check Start Byte
+		if( _pos > 0 && _byteData == START_BYTE){
 		  _response.setErrorCode(UNEXPECTED_START_BYTE);
 		  return;
-	  }
-	  // Check ESC
-	  if(_pos > 0 && _byteData == ESCAPE){
+		}
+		// Check ESC
+		if(_pos > 0 && _byteData == ESCAPE){
 		  if(read(&_byteData )){
 			  _byteData = 0x20^_byteData;  // decode
 		  }else{
 			  _escape = true;
 			  continue;
 		  }
-	  }
+		}
 
-	  if(_escape){
+		if(_escape){
 		  _byteData = 0x20 ^ _byteData;
 		  _escape = false;
-	  }
+		}
 
-	  if(_pos >= API_ID_POS){
+		if(_pos >= API_ID_POS){
 		  _checksumTotal+= _byteData;
-	  }
-	  switch(_pos){
+		}
+
+		switch(_pos){
 		case 0:
-		  if(_byteData == START_BYTE){
-			  _pos++;
-		  }
-		  break;
+			break;
+
 		case 1:
-		  _response.setMsbLength(_byteData);
-		  _pos++;
+			_response.setMsbLength(_byteData);
 		  break;
+
 		case 2:
-		  _response.setLsbLength(_byteData);
-		  _pos++;
-		  DPRINT(" ===> Start: length=");
-		  DPRINT((_response.getPacketLength()),DEC);
-		  DPRINTF( " ===> Start: length=%d", _response.getPacketLength() );
-		  break;
+			_response.setLsbLength(_byteData);
+			DPRINT(" ===> Start: length=");
+			DPRINT((_response.getPacketLength()),DEC);
+			DPRINTF( " ===> Start: length=%d", _response.getPacketLength() );
+			break;
 		case 3:
-		  _response.setApiId(_byteData);   // API
-		  _pos++;
-		  break;
+		    _response.setApiId(_byteData);   // API
+		    break;
+
 		case 4:
-			_pos++;  // Frame ID ignore
+			_addr32 = (uint32_t(_byteData) << 24);
 			break;
 		case 5:
-			addr32 = _byteData;	// RemoteAddress64
-			_pos++;
+			_addr32 += (uint32_t(_byteData) << 16);
 			break;
+
 		case 6:
-			addr32 += (uint32_t(_byteData) << 8);
-			_pos++;
+			_addr32 += (uint32_t(_byteData) << 8);
 			break;
+
 		case 7:
-			addr32 += (uint32_t(_byteData) << 16);
-			_pos++;
+			_addr32 += _byteData;
+			_response.getRemoteAddress64().setMsb(_addr32);
 			break;
+
 		case 8:
-			addr32 += (uint32_t(_byteData) << 24);
-			aAddr64.setMsb(addr32);
-			_pos++;
+			_addr32 = (uint32_t(_byteData) << 24);
 			break;
+
 		case 9:
-			addr32 = _byteData;
-			_pos++;
+			_addr32 += (uint32_t(_byteData) << 16);
 			break;
+
 		case 10:
-			addr32 += (uint32_t(_byteData) << 8);
-			_pos++;
+			_addr32 += (uint32_t(_byteData) << 8);
 			break;
+
 		case 11:
-			addr32 += (uint32_t(_byteData) << 16);
-			_pos++;
+			_addr32 += _byteData;
+			_response.getRemoteAddress64().setLsb(_addr32);
 			break;
+
 		case 12:
-			addr32 += (uint32_t(_byteData) << 24);
-			addr64.setLsb(addr32);
-			_response.setRemoteAddress64(addr64);
-			_pos++;
+			_addr16 = (uint16_t(_byteData) << 8);
 			break;
+
 		case 13:
-			addr16 = _byteData;		 // RemoteAddress16
-			_pos++;
+			_addr16 += _byteData;
+			_response.setRemoteAddress16(_addr16);
 			break;
+
 		case 14:
-			addr16 = (uint16_t(_byteData) << 8);
-			_response.setRemoteAddress16(addr16);
-			_pos++;
-			break;
-		case 15:
 			_response.setOption(_byteData);
-			_pos++;
+			DPRINTW( "\r\n Payload ==> ");
 			break;
+
 		default:
-		  if(_pos > MAX_FRAME_DATA_SIZE){
+			if(_pos > MAX_PAYLOAD_SIZE){
 			  _response.setErrorCode(PACKET_EXCEEDS_BYTE_ARRAY_LENGTH);
 			  return;
-		  }else if(_pos == (_response.getPacketLength() + 3)){  // 3 = 2(packet len) + 1(checksum)
+			}else if(_pos == (_response.getPacketLength() + 3)){  // 3 = 2(packet len) + 1(checksum)
 			  if((_checksumTotal & 0xff) == 0xff){
 				  _response.setChecksum(_byteData);
 				  _response.setAvailable(true);
@@ -408,22 +368,16 @@ void ZBeeStack::readApiFrame(){
 			  }else{
 				  _response.setErrorCode(CHECKSUM_FAILURE);
 			  }
-			  _response.setFrameDataLength(_pos - 4);    // 4 = 2(packet len) + 1(Api) + 1(checksum)
+			  _response.setPayloadLength(_pos - 4 - ZB_RSP_DATA_OFFSET);    // 4 = 2(packet len) + 1(Api) + 1(checksum)
 			  _pos = 0;
 			  _checksumTotal = 0;
 			  return;
-		  }else{
-			  uint8_t* buf = _response.getFrameData();
-			  buf[_pos - 4] = _byteData;
-			  _pos++;
-			  if (_response.getApiId() == ZB_API_RESPONSE && _pos == 15){
-				  DPRINTLN();
-				  DPRINT(" Payload ==> ");
-				  DPRINTF( "\r\n Payload ==> ");
-			  }
-		  }
-		  break;
-	  }
+			}else{
+			  _response.getPayload()[_pos - 4 - ZB_RSP_DATA_OFFSET] = _byteData;
+			}
+			break;
+		}
+	    _pos++;
 	}
 }
 
@@ -452,9 +406,7 @@ void ZBeeStack::sendZBRequest(ZBRequest& request){
 	sendByte(request.getOption(), true);
 	checksum += request.getOption();
 
-	DPRINTLN();
-	DPRINT(" Payload ==> ");
-	DPRINTF( "\r\n Payload ==> ");
+	DPRINTW( "\r\n Payload ==> ");
 
 	for( int i = 0; i < request.getPayloadLength(); i++ ){
 	  	sendByte(request.getPayload()[i], true);     // Payload
@@ -465,8 +417,7 @@ void ZBeeStack::sendZBRequest(ZBRequest& request){
 
 	flush();  // clear receive buffer
 
-	DPRINTLN("");
-	DPRINTF("\r\n" );
+	DPRINTW("\r\n" );
 }
 
 void ZBeeStack::sendByte(uint8_t b, bool escape){
@@ -482,6 +433,9 @@ void ZBeeStack::resetResponse(){
   _pos = 0;
   _escape = 0;
   _response.reset();
+  _addr16 = 0;
+  _addr32 = 0;
+
 }
 
 void ZBeeStack::flush(){
@@ -958,6 +912,7 @@ bool ZBResponse::isBrodcast(){
 /**
  *  private functions
  */
+/*
 void ZBResponse::copyCommon(ZBResponse &target){
 	target.setAvailable(isAvailable());
 	target.setChecksum(getChecksum());
@@ -965,7 +920,7 @@ void ZBResponse::copyCommon(ZBResponse &target){
 	target.setPayloadLength(getPayloadLength());
 	target.setMsbLength(getMsbLength());
 	target.setLsbLength(getLsbLength());
-}
+}*/
 
 /*=========================================
            Class ZBRequest

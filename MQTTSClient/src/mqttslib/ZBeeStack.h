@@ -70,7 +70,7 @@ namespace tomyClient {
 #define XON        0x11
 #define XOFF       0x13
 
-#define MAX_FRAME_DATA_SIZE          128
+#define MAX_PAYLOAD_SIZE             70
 
 #define ZB_API_REQUEST               0x10
 #define ZB_API_RESPONSE              0x90
@@ -173,7 +173,7 @@ public:
 	void setMsbLength(uint8_t msbLength);
 	void setLsbLength(uint8_t lsbLength);
 	void setChecksum(uint8_t checksum);
-	void setPayLoad(uint8_t* payloadPtr);
+	void setPayload(uint8_t* payloadPtr);
 	void setPayloadLength(uint8_t payloadLength);
 	void setRemoteAddress64(XBeeAddress64& addr64);
 	void setRemoteAddress16(uint16_t addr16);
@@ -188,7 +188,7 @@ public:
 	void reset();
 
 private:
-	void copyCommon(ZBResponse &target);
+	//void copyCommon(ZBResponse &target);
 
 	uint8_t *_payloadPtr;
 	uint8_t _msbLength;
@@ -373,8 +373,8 @@ public:
 	const char*   getNodeId();
 
 	void          getResponse(ZBResponse& response);
-	ZBResponse&    getResponse();
-	ZBResponse*    getRxData();
+	//ZBResponse&    getResponse();
+	//ZBResponse*    getRxData();
 	ZBResponse*    getRxResponse();
 
 	bool init(const char* nodeId);
@@ -394,13 +394,11 @@ private:
 	ZBRequest   _txRequest;
 	ZBResponse  _rxResp;
 	ZBRequest   _txRetryRequest;
-	ZBResponse* _rxData;
 	int         _returnCode;
 
-	uint8_t _rxDataBuf[MAX_FRAME_DATA_SIZE];
+	uint8_t _rxPayloadBuf[MAX_PAYLOAD_SIZE];
 	uint8_t _respWaitStat;  // 0:no wait  1:TxResp
 
-	bool   _rxDataReady;
 	NodeStatus _nodeStatus;
 	SendReqType _sendReqStat;
 
@@ -410,7 +408,9 @@ private:
 	uint8_t _byteData;
 	bool   _escape;
 	uint8_t _checksumTotal;
-	uint8_t _responseFrameData[MAX_FRAME_DATA_SIZE];
+	uint16_t _addr16;
+	uint32_t _addr32;
+	uint8_t _responsePayload[MAX_PAYLOAD_SIZE];
 	SerialPort *_serialPort;
 	XBeeAddress64 _gwAddress64;
 	uint16_t  _gwAddress16;

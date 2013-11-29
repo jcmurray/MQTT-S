@@ -66,11 +66,11 @@ int main(int argc, char **argv){
     mqtts.setWillMessage(willmsg);
     mqtts.setKeepAlive(60);
 
-
+/*
     printf("Connect\n");
     mqtts.connect();
-    mqtts.runConnect();
-
+    mqtts.run();
+*/
 
     MQString *topic0 = new MQString("a/bcd/ef");
 

@@ -13,9 +13,11 @@
 #ifdef XBEE_DEBUG
 #define DPRINT(...)    debug.print(__VA_ARGS__)
 #define DPRINTLN(... ) debug.println(__VA_ARGS__)
+#define DPRINTW(...)   debug.print(__VA_ARGS__)
 #else
 #define DPRINT(...)
 #define DPRINTLN(...)
+#define DPRINTW(...)
 #endif
 
 #define DPRINTF(...)

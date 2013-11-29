@@ -600,27 +600,6 @@ private:
 
 };
 
-/*=====================================
-        Class SendQue  (FIFO)
- ======================================*/
-class SendQue {
-public:
-    SendQue();
-    ~SendQue();
-    int addRequest(MqttsMessage* msg);
-    int addPriorityRequest(MqttsMessage* msg);
-    void setStatus(uint8_t index, uint8_t status);
-    MqttsMessage* getMessage(uint8_t index);
-    int  getStatus(uint8_t index);
-    uint8_t getCount();
-    int deleteRequest(uint8_t index);
-    void   deleteAllRequest();
-    void setQueSize(uint8_t sz);
-private:
-    uint8_t   _queSize;
-    uint8_t   _queCnt;
-    MqttsMessage*  _msg[5];
-};
 
 /*=====================================
         Class Publish Handler

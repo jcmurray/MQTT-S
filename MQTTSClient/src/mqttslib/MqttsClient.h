@@ -56,40 +56,74 @@
         #endif
 #endif
 
+
+#define GW_LOST      0
+#define GW_SEARCHING 1
+#define GW_FIND      2
+
+#define CL_DISCONNECTED  0
+#define CL_ACTIVE        1
+#define CL_ASLEEP        2
+#define CL_AWAKE         3
+
 /*=====================================
-        Class GatewayHandller
+        Class ClientStatus
  ======================================*/
-class GatewayHandller {
+class ClientStatus{
 public:
-    GatewayHandller();
-    bool     isConnected();
-    bool     isDisconnected();
-    bool     isSearching();
-    bool     isFound();
-    bool     isLost();
-    bool     isInit();
-    bool     isPingRequired();
-    XBeeAddress64*  getAddress64();
-    uint16_t        getAddress16();
-    void     setStatus(uint8_t status);
-    void     recvGwInfo(MqttsGwInfo* msg);
-    void     setLastSendTime();
-    void     recvAdvertise(MqttsAdvertise* msg);
-    void     setKeepAlive(uint16_t sec);
-    uint16_t  getKeepAlive();
-    void     recvPingResp();
+	ClientStatus();
+	~ClientStatus();
+
+	bool isLost();
+	bool isSearching();
+	bool isConnected();
+	bool isAvailableToSend();
+	bool isPINGREQRequired();
+	bool isGatewayAlive();
+
+	uint16_t getKeepAlive();
+	void setKeepAlive(uint16_t sec);
+	void sendSEARCHGW();
+	void recvGWINFO();
+	void recvADVERTISE(MqttsAdvertise* adv);
+	void recvCONNACK();
+	void recvDISCONNECT();
+	void recvPINGRESP();
+	void setLastSendTime();
 
 private:
-    uint8_t        _status;  //  0:init 1:searching 2:find 3:connected  4:disconnect 5:lost
-    XBeeAddress64  _addr64;
-    uint16_t       _addr16;
-    uint8_t        _gwId;
-    uint16_t       _keepAliveDuration;// PINGREQ interval
-    uint16_t       _advertiseDuration;
 
-    XTimer          _keepAliveTimer;
-    XTimer          _advertiseTimer;
+	uint8_t _gwId;
+	uint8_t _gwStat;
+	uint8_t _clStat;
+	uint16_t _keepAliveDuration; // PINGREQ interval
+	uint16_t _advertiseDuration; // Gateway heart beat
+	XTimer   _keepAliveTimer;
+	XTimer   _advertiseTimer;
 };
+
+/*=====================================
+        Class SendQue  (FIFO)
+ ======================================*/
+class SendQue {
+public:
+    SendQue();
+    ~SendQue();
+    int addRequest(MqttsMessage* msg);
+    int addPriorityRequest(MqttsMessage* msg);
+    void setStatus(uint8_t index, uint8_t status);
+    MqttsMessage* getMessage(uint8_t index);
+    int  getStatus(uint8_t index);
+    uint8_t getCount();
+    int deleteRequest(uint8_t index);
+    void   deleteAllRequest();
+    void setQueSize(uint8_t sz);
+private:
+    uint8_t   _queSize;
+    uint8_t   _queCnt;
+    MqttsMessage*  _msg[5];
+};
+
 
 /*=====================================
         Class MqttsClient
@@ -98,6 +132,7 @@ class MqttsClient {
 public:
     MqttsClient();
     ~MqttsClient();
+
   #ifdef ARDUINO
     void begin(long baudrate);
   #else
@@ -107,6 +142,7 @@ public:
         void begin(char* device, unsigned int bauderate);  /* MBED & LINUX */
     #endif /* MBED */
   #endif /* ARDUINO */
+
     Topics* getTopics();
     bool init(const char* clientIdName);
     void setKeepAlive(uint16_t sec);
@@ -141,15 +177,15 @@ public:
     uint8_t getMsgRequestStatus();
     uint8_t getMsgRequestCount();
     void   setMsgRequestStatus(uint8_t stat);
-    bool   isGwConnected();
+
     void   clearMsgRequest();
     int    execMsgRequest();
 
 private:
-    int    requestSendMsg(MqttsMessage* msg);
-    int    requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
-    int    broadcast(uint16_t packetReadTimeout);
-    int    unicast(uint16_t packetReadTimeout);
+    int  requestSendMsg(MqttsMessage* msg);
+    int  requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
+    int  broadcast(uint16_t packetReadTimeout);
+    int  unicast(uint16_t packetReadTimeout);
 
     int  searchGw(uint8_t radius);
     int  pingReq(MQString* clietnId);
@@ -164,7 +200,6 @@ private:
 
     ZBeeStack*       _zbee;
     SerialPort*      _sp;
-    GatewayHandller  _gwHdl;
     Topics           _topics;
     SendQue*         _sendQ;
     XTimer           _respTimer;
@@ -180,6 +215,7 @@ private:
     MQString*         _willTopic;
     MQString*         _willMessage;
     uint16_t         _msgId;
+    ClientStatus     _status;
 };
 
 
