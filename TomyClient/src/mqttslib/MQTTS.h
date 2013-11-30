@@ -202,6 +202,7 @@ public:
     bool  setBody(uint8_t* body);
     bool  allocateBody();
     void  setStatus(uint8_t stat);
+    void  setDup();
     uint8_t getLength();
     uint8_t getType();
     uint8_t getStatus();
@@ -404,6 +405,7 @@ public:
     uint8_t  getQos();
     bool isRetain();
     void setMsgId(uint16_t msgId);
+    void setDup();
     uint16_t getMsgId();
     void setData(uint8_t* data, uint8_t len);
     void setFrame(uint8_t* data, uint8_t len);
@@ -442,6 +444,7 @@ public:
     MqttsSubscribe();
     ~MqttsSubscribe();
     void setFlags(uint8_t flags);
+    void setDup();
     uint8_t getFlags();
     void setMsgId(uint16_t msgId);
     uint16_t getMsgId();

@@ -67,6 +67,8 @@
 #define CL_ASLEEP        2
 #define CL_AWAKE         3
 
+using namespace tomyClient;
+
 /*=====================================
         Class ClientStatus
  ======================================*/
@@ -166,7 +168,6 @@ public:
     int  unsubscribe(uint16_t predefinedId);
     int  disconnect(uint16_t duration = 0);
 
-    void runConnect();
     int  run();
 
     void recieveMessageHandler(ZBResponse* msg, int* returnCode);
@@ -190,7 +191,6 @@ private:
 
     int  searchGw(uint8_t radius);
     int  pingReq(MQString* clietnId);
-    int  pingResp();
     int  willTopic();
     int  willMsg();
     int  pubAck(uint16_t topicId, uint16_t msgId, uint8_t rc);

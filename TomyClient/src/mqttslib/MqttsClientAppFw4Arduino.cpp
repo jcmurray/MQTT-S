@@ -38,6 +38,7 @@
 
 
 using namespace std;
+using namespace tomyClient;
 
 volatile uint8_t MQ_ErrFlag = MQ_OFF;
 volatile uint8_t MQ_cnt = 0;
@@ -149,11 +150,11 @@ void MqttsClientApplication::checkInterupt(){
     if (MQ_wdtStat == INT_WDT){
         _wdTimer.wakeUp();    // Check Callback's intervals & execute
         if (_sleepMode == MQ_MODE_SLEEP){
-            DPRINTLN("sleep");
+            D_MQTTLN("sleep");
             sleepXB();
             sleepApp();
             wakeupXB();
-            DPRINTLN("wakeup");
+            D_MQTTLN("wakeup");
         }
         wakeupXB();
         _wdTimer.start();     // Restart WDT
@@ -289,10 +290,6 @@ int MqttsClientApplication::execMsgRequest(){
     return _mqtts.execMsgRequest();
 }
 
-bool MqttsClientApplication::isGwConnected(){
-    return _mqtts.isGwConnected();
-}
-
 void MqttsClientApplication::setMsgRequestStatus(uint8_t stat){
     return _mqtts.setMsgRequestStatus(stat);
 }
@@ -309,10 +306,6 @@ void MqttsClientApplication::run(){
     _mqtts.run();
 }
 
-void MqttsClientApplication::runConnect(){
-    _mqtts.runConnect();
-}
-
 void MqttsClientApplication::runLoop(){
 
     while(true){
@@ -320,8 +313,8 @@ void MqttsClientApplication::runLoop(){
         if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) &&
                 getMsgRequestStatus() != MQTTS_MSG_REQUEST){
                 clearMsgRequest();
-                DPRINT(" ErrCode=");
-                DPRINTLN(rc,DEC);
+                D_MQTT(" ErrCode=");
+                D_MQTTLN(rc,DEC);
         }
         if (getMsgRequestCount() == 0){
             checkInterupt();

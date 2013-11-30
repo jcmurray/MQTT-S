@@ -37,6 +37,7 @@
 
 #ifdef ARDUINO
 
+
 #include <MqttsClient.h>
 #include <avr/wdt.h>
 #include <avr/sleep.h>
@@ -127,7 +128,6 @@ public:
 	void startWdt();
 	void stopWdt();
 	void run();
-	void runConnect();
 	void runLoop();
 	void setUnixTime(MqttsPublish* msg);
 	long getUnixTime();
@@ -138,7 +138,6 @@ private:
 	uint8_t getMsgRequestCount();
 	void clearMsgRequest();
 	int  execMsgRequest();
-	bool isGwConnected();
 	void setMsgRequestStatus(uint8_t stat);
 	void checkInterupt();
 	void interruptHandler();
@@ -147,12 +146,9 @@ private:
 	MqttsClient _mqtts;
 	bool _txFlag;
 	long    _unixTime;
-        uint32_t _epochTime;
-        uint8_t _sleepMode;
+	uint32_t _epochTime;
+	uint8_t _sleepMode;
 
-	//uint8_t _wdtCnt;
-	//uint8_t _wakeupCnt;
-	//uint8_t _wakeupCntReg;
 	WdTimer _wdTimer;
 
 	void (*_intHandler)(void);

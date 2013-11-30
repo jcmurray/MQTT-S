@@ -64,6 +64,8 @@
     #include <iostream>
 #endif
 
+
+
 namespace tomyClient {
 
 #define START_BYTE 0x7e
@@ -374,8 +376,6 @@ public:
 	const char*   getNodeId();
 
 	void          getResponse(ZBResponse& response);
-	//ZBResponse&    getResponse();
-	//ZBResponse*    getRxData();
 	ZBResponse*    getRxResponse();
 
 	bool init(const char* nodeId);

@@ -67,6 +67,7 @@
 #endif /* LINUX */
 
 using namespace std;
+using namespace tomyClient;
 
 static MqttsClient*  theMqtts;
 
@@ -271,7 +272,8 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
         if (_qos){
             mqttsMsg.setMsgId(getNextMsgId());
         }
-        return requestSendMsg((MqttsMessage*)&mqttsMsg);
+        requestSendMsg((MqttsMessage*)&mqttsMsg);
+        return run();
     }
     return MQTTS_ERR_NO_TOPICID;
 }
@@ -285,8 +287,8 @@ int MqttsClient::publish(uint16_t predefinedId, const char* data, int dataLength
     if (_qos){
         mqttsMsg.setMsgId(getNextMsgId());
     }
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
-
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- PUBACK ------*/
@@ -295,7 +297,8 @@ int MqttsClient::pubAck(uint16_t topicId, uint16_t msgId, uint8_t rc){
     mqttsMsg.setTopicId(topicId);
     mqttsMsg.setMsgId(msgId);
     mqttsMsg.setReturnCode(rc);
-    return requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
+    requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- REGISTER ------*/
@@ -304,7 +307,8 @@ int MqttsClient::registerTopic(MQString* topic){
     mqttsMsg.setTopicName(topic);
     mqttsMsg.setMsgId(getNextMsgId());
     _topics.addTopic(topic);
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- SUBSCRIBE ------*/
@@ -321,7 +325,8 @@ int MqttsClient::subscribe(MQString* topic, TopicCallback callback){
         _topics.setCallback(topic, callback);
     }
     mqttsMsg.setMsgId(getNextMsgId());
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- SUBSCRIBE ------*/
@@ -331,7 +336,8 @@ int MqttsClient::subscribe(uint16_t predefinedId, TopicCallback callback){
     mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_PREDEFINED);
     mqttsMsg.setMsgId(getNextMsgId());
     _topics.setCallback(predefinedId, callback);
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- UNSUBSCRIBE ------*/
@@ -346,7 +352,8 @@ int MqttsClient::unsubscribe(MQString* topic){
         mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
     }
     mqttsMsg.setMsgId(getNextMsgId());
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- UNSUBSCRIBE ------*/
@@ -355,7 +362,8 @@ int MqttsClient::unsubscribe(uint16_t predefinedId){
     mqttsMsg.setTopicId(predefinedId);
     mqttsMsg.setMsgId(getNextMsgId());
     mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_PREDEFINED);
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- DISCONNECT ------*/
@@ -364,7 +372,8 @@ int MqttsClient::disconnect(uint16_t duration){
     if (duration){
         mqttsMsg.setDuration(duration);
     }
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    return run();
 }
 
 /*--------- SEARCHGW ------*/
@@ -377,12 +386,6 @@ int  MqttsClient::searchGw(uint8_t radius){
 /*--------- PINGREQ ------*/
 int  MqttsClient::pingReq(MQString* clientId){
     MqttsPingReq mqttsMsg = MqttsPingReq(clientId);
-    return requestSendMsg((MqttsMessage*)&mqttsMsg);
-}
-
-/*--------- PINGRESP ------*/
-int  MqttsClient::pingResp(){
-    MqttsPingResp mqttsMsg = MqttsPingResp();
     return requestSendMsg((MqttsMessage*)&mqttsMsg);
 }
 
@@ -410,7 +413,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  PUBLISH  --------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_PUBLISH){
-        DPRINTW("PUBLISH received\r\n");
+    	D_MQTTW("PUBLISH received\r\n");
         MqttsPublish mqMsg = MqttsPublish();
         mqMsg.setFrame(recvMsg);
 		*returnCode = _pubHdl.exec(&mqMsg,&_topics);
@@ -423,10 +426,10 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_PUBACK && getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK){
         MqttsPubAck mqMsg = MqttsPubAck();
         copyMsg(&mqMsg, recvMsg);
-        DPRINT("\nPUBACK received ReturnCode=");
-        DPRINTLN(mqMsg.getReturnCode(),HEX);
-        DPRINTLN();
-        DPRINTF("\nPUBACK received ReturnCode=%d\r\n", mqMsg.getReturnCode());
+        D_MQTT("\nPUBACK received ReturnCode=");
+        D_MQTTLN(mqMsg.getReturnCode(),HEX);
+        D_MQTTLN();
+        D_MQTTF("\nPUBACK received ReturnCode=%d\r\n", mqMsg.getReturnCode());
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 3)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
@@ -442,21 +445,16 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  PINGRESP  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_PINGRESP){
-        DPRINTW(" PINGRESP received\r\n");
+        D_MQTTW(" PINGRESP received\r\n");
 
         _status.recvPINGRESP();
         if (getMsgRequestType() == MQTTS_TYPE_PINGREQ){
             setMsgRequestStatus(MQTTS_MSG_COMPLETE);
         }
 
-/*---------  PINGREQ  ----------*/
-    }else if (recvMsg->getPayload(1) == MQTTS_TYPE_PINGREQ){
-       DPRINTW(" PINGREQ received\r\n");
-        pingResp();
-
 /*---------  ADVERTISE  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_ADVERTISE){
-        DPRINTW(" ********** ADVERTISE received\r\n");
+        D_MQTTW(" ********** ADVERTISE received\r\n");
 
         MqttsAdvertise mqMsg = MqttsAdvertise();
         copyMsg(&mqMsg, recvMsg);
@@ -464,7 +462,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  GWINFO  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_GWINFO){
-        DPRINTW(" GWINFO received\r\n");
+        D_MQTTW(" GWINFO received\r\n");
         MqttsGwInfo mqMsg = MqttsGwInfo();
         copyMsg(&mqMsg, recvMsg);
         if (getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
@@ -475,7 +473,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  CONNACK  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_CONNACK){
-        DPRINTW(" CONNACK received\r\n");
+        D_MQTTW(" CONNACK received\r\n");
         if (_qos == 1 && (getMsgRequestType() == MQTTS_TYPE_CONNECT ||
                          getMsgRequestType() == MQTTS_TYPE_WILLMSG)){
             MqttsConnack mqMsg = MqttsConnack();
@@ -495,7 +493,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  REGISTER  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_REGISTER){
-        DPRINTW(" REGISTER received\r\n");
+        D_MQTTW(" REGISTER received\r\n");
         MqttsRegister mqMsg = MqttsRegister();
 
         mqMsg.setFrame(recvMsg);
@@ -511,7 +509,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  REGACK  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_REGACK){
-         DPRINTW(" REGACK received\r\n");
+         D_MQTTW(" REGACK received\r\n");
 
         if (getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK &&
             getMsgRequestType() == MQTTS_TYPE_REGISTER){
@@ -540,10 +538,10 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
         MqttsSubAck mqMsg = MqttsSubAck();
         copyMsg(&mqMsg, recvMsg);
 
-        DPRINTLN();
-        DPRINT("SUBACK ReturnCode=");
-        DPRINTLN(mqMsg.getReturnCode(),HEX);
-        DPRINTF("\nSUBACK ReturnCode=%d\r\n", mqMsg.getReturnCode());
+        D_MQTTLN();
+        D_MQTT("SUBACK ReturnCode=");
+        D_MQTTLN(mqMsg.getReturnCode(),HEX);
+        D_MQTTF("\nSUBACK ReturnCode=%d\r\n", mqMsg.getReturnCode());
 
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 1)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
@@ -563,7 +561,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  UNSUBACK  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_UNSUBACK && getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK){
-        DPRINTW(" UNSUBACK received\r\n");
+        D_MQTTW(" UNSUBACK received\r\n");
         MqttsUnSubAck mqMsg = MqttsUnSubAck();
         copyMsg(&mqMsg, recvMsg);
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 1)){
@@ -572,14 +570,14 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  DISCONNECT  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_DISCONNECT && getMsgRequestStatus() == MQTTS_MSG_WAIT_ACK){
-         DPRINTW(" DISCONNECT received\r\n");
+         D_MQTTW(" DISCONNECT received\r\n");
          setMsgRequestStatus(MQTTS_MSG_COMPLETE);
          _status.recvDISCONNECT();
 
 
 /*---------  WILLTOPICREQ  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_WILLTOPICREQ){
-        DPRINTW(" WILLTOPICREQ received\r\n");
+        D_MQTTW(" WILLTOPICREQ received\r\n");
         if (getMsgRequestType() == MQTTS_TYPE_CONNECT){
             //setMsgRequestStatus(MQTTS_MSG_COMPLETE);
             clearMsgRequest();
@@ -595,7 +593,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  WILLMSGREQ  -----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_WILLMSGREQ){
-        DPRINTW(" WILLMSGREQ received\r\n");
+        D_MQTTW(" WILLMSGREQ received\r\n");
         if (getMsgRequestType() == MQTTS_TYPE_WILLTOPIC){
             //setMsgRequestStatus(MQTTS_MSG_COMPLETE);
             clearMsgRequest();
@@ -753,6 +751,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
     while(retry < _nRetry){
     	/*------ Send Top message in SendQue -----*/
         _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
+        _sendQ->getMessage(0)->setDup();
         _respTimer.start(packetReadTimeout * 1000);
 
         while(!_respTimer.isTimeUp()){
@@ -820,9 +819,9 @@ SendQue::~SendQue(){
 
 int SendQue::addRequest(MqttsMessage* msg){
     if ( _queCnt < _queSize){
-		DPRINT("\nAdd SendQue MsgType = 0x");
-		DPRINTLN(msg->getType(), HEX);
-		DPRINTF("\nAdd SendQue MsgType = 0x%x\r\n", msg->getType());
+		D_MQTT("\nAdd SendQue MsgType = 0x");
+		D_MQTTLN(msg->getType(), HEX);
+		D_MQTTF("\nAdd SendQue MsgType = 0x%x\r\n", msg->getType());
 
         _msg[_queCnt] =new MqttsMessage();
         _msg[_queCnt++]->copy(msg);
@@ -833,9 +832,9 @@ int SendQue::addRequest(MqttsMessage* msg){
 
 int SendQue::addPriorityRequest(MqttsMessage* msg){
     if ( _queCnt < _queSize){
-		DPRINT("\nAdd SendQue Top MsgType = 0x");
-		DPRINTLN(msg->getType(), HEX);
-		DPRINTF("\nAdd SendQue Top MsgType = 0x%x\r\n", msg->getType());
+		D_MQTT("\nAdd SendQue Top MsgType = 0x");
+		D_MQTTLN(msg->getType(), HEX);
+		D_MQTTF("\nAdd SendQue Top MsgType = 0x%x\r\n", msg->getType());
 
         for(int i = _queCnt; i > 0; i--){
             _msg[i] = _msg[i - 1];
@@ -851,7 +850,7 @@ int SendQue::addPriorityRequest(MqttsMessage* msg){
 int SendQue::deleteRequest(uint8_t index){
     if ( index < _queCnt){
 
-    	DPRINTW("\nDelete SendQue\r\n");
+    	D_MQTTW("\nDelete SendQue\r\n");
         delete _msg[index];
         _queCnt--;
         for(int i = index; i < _queCnt; i++){

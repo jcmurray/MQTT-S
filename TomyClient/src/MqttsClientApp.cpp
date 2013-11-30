@@ -62,37 +62,21 @@ int main(int argc, char **argv){
     mqtts.begin(argv[1], B38400);
     mqtts.init("Node-03");
     mqtts.setQos(1);
+    mqtts.setClean(true);
     mqtts.setWillTopic(willtopic);
     mqtts.setWillMessage(willmsg);
     mqtts.setKeepAlive(60);
 
-/*
-    printf("Connect\n");
-    mqtts.connect();
-    mqtts.run();
-*/
-
     MQString *topic0 = new MQString("a/bcd/ef");
 
     mqtts.registerTopic(topic0);
-    mqtts.run();
-
-/*
-    mqtts.disconnect();
-    mqtts.run();
-*/
-
-
 
     MQString *topic1 = new MQString("g/hij/kl");
 
     mqtts.subscribe(topic1, fnTp1);
-    mqtts.run();
 
-/*
-    mqtts.unsubscribe(topic1);
-    mqtts.run();
-*/
+    mqtts.unsubscribe(topic0);
+
 
    const char* dt = "ABCDEFG";
 
@@ -105,9 +89,9 @@ int main(int argc, char **argv){
     while(true){
     	//mqtts.execMsgRequest();
     	mqtts.publish(topic1,dt,5);
-		mqtts.run();
 		sleep(20);
     }
 
+	mqtts.disconnect();
 
 }

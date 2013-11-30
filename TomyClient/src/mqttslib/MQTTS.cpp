@@ -273,6 +273,9 @@ bool MqttsMessage::allocateBody(){
         return false;
     }
 }
+void MqttsMessage::setDup(){
+
+}
 
 void MqttsMessage::setStatus(uint8_t stat){
     _status = stat;
@@ -674,6 +677,11 @@ void MqttsPublish::setFlags(uint8_t flags){
     getBody()[0] = _flags ;
 }
 
+void MqttsPublish::setDup(){
+	_flags |= 0x80;
+	getBody()[0] = _flags ;
+}
+
 uint8_t MqttsPublish::getFlags(){
     return _flags;
 }
@@ -786,6 +794,11 @@ void MqttsSubscribe::setFlags(uint8_t flags){
     if (_msgBuff){
               getBody()[0] = _flags;
       }
+}
+
+void MqttsSubscribe::setDup(){
+    _flags |= 0x80;
+    getBody()[0] = _flags;
 }
 
 uint8_t MqttsSubscribe::getFlags(){

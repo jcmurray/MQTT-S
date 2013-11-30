@@ -41,7 +41,7 @@
 #ifdef ARDUINO
   #include <ZBeeStack.h>
 
-  #ifdef DEBUG
+  #if defined( XBEE_DEBUG) || defined(MQTT_DEBUG)
         #include <SoftwareSerial.h>
         extern SoftwareSerial debug;
   #endif
@@ -70,6 +70,7 @@
 
 using namespace std;
 using namespace tomyClient;
+
 /*=====================================
         Global functions
  ======================================*/
@@ -240,21 +241,21 @@ bool ZBeeStack::readApiFrame(uint16_t timeoutMillsec){
         readApiFrame();
 
         if(_response.isAvailable()){
-            DPRINTW("<== CheckSum OK\r\n");
+        	D_ZBSTACKW("<== CheckSum OK\r\n");
             if( (_response.getOption() & 0x02 ) == 0x02 ){
             	return true;
             }else if(_gwAddress16 &&
 				(_gwAddress64.getMsb() != _response.getRemoteAddress64().getMsb()) &&
 				(_gwAddress64.getLsb() != _response.getRemoteAddress64().getLsb())){
-            	DPRINTW("  Sender is not Gateway!\r\n" );
+            	D_ZBSTACKW("  Sender is not Gateway!\r\n" );
             	return false;
             }else{
                 return true;
             }
         }else if(_response.isError()){
-            DPRINT("  <== Packet Error Code = ");
-            DPRINT(_response.getErrorCode(), DEC);
-            DPRINTF("  <== Packet Error Code = %d\r\n",_response.getErrorCode() );
+        	D_ZBSTACK("  <== Packet Error Code = ");
+        	D_ZBSTACK(_response.getErrorCode(), DEC);
+        	D_ZBSTACKF("  <== Packet Error Code = %d\r\n",_response.getErrorCode() );
             return false;
         }
     }
@@ -302,9 +303,9 @@ void ZBeeStack::readApiFrame(){
 
 		case 2:
 			_response.setLsbLength(_byteData);
-			DPRINT(" ===> Start: length=");
-			DPRINT((_response.getPacketLength()),DEC);
-			DPRINTF( " ===> Start: length=%d", _response.getPacketLength() );
+			D_ZBSTACK(" ===> Start: length=");
+			D_ZBSTACK((_response.getPacketLength()),DEC);
+			D_ZBSTACKF( " ===> Start: length=%d", _response.getPacketLength() );
 			break;
 		case 3:
 		    _response.setApiId(_byteData);   // API
@@ -354,7 +355,7 @@ void ZBeeStack::readApiFrame(){
 
 		case 14:
 			_response.setOption(_byteData);
-			DPRINTW( "\r\n Payload ==> ");
+			D_ZBSTACKW( "\r\n Payload ==> ");
 			break;
 
 		default:
@@ -407,7 +408,7 @@ void ZBeeStack::sendZBRequest(ZBRequest& request){
 	sendByte(request.getOption(), true);
 	checksum += request.getOption();
 
-	DPRINTW( "\r\n Payload ==> ");
+	D_ZBSTACKW( "\r\n Payload ==> ");
 
 	for( int i = 0; i < request.getPayloadLength(); i++ ){
 	  	sendByte(request.getPayload()[i], true);     // Payload
@@ -418,7 +419,7 @@ void ZBeeStack::sendZBRequest(ZBRequest& request){
 
 	flush();  // clear receive buffer
 
-	DPRINTW("\r\n" );
+	D_ZBSTACKW("\r\n" );
 }
 
 void ZBeeStack::sendByte(uint8_t b, bool escape){
@@ -611,8 +612,8 @@ bool SerialPort::send(unsigned char b){
   if(_serial->write(b) != 1){
       return false;
   }else{
-      DPRINT(" s:0x");
-      DPRINT(b,HEX);
+	  D_ZBSTACK(" s:0x");
+	  D_ZBSTACK(b,HEX);
       return true;
   }
 }
@@ -620,8 +621,8 @@ bool SerialPort::send(unsigned char b){
 bool SerialPort::recv(unsigned char* buf){
   if ( _serial->available() > 0 ){
     buf[0] = _serial->read();
-    DPRINT(" r:0x");
-    DPRINT(*buf,HEX);
+    D_ZBSTACK(" r:0x");
+    D_ZBSTACK(*buf,HEX);
     return true;
   }else{
     return false;
@@ -649,14 +650,14 @@ void SerialPort::begin(long baudrate){
 
 bool SerialPort::send(unsigned char b){
   _serial->putc(b);
-        DPRINTF( " S:0x%x", b);
+        D_ZBSTACKF( " S:0x%x", b);
       return true;
 }
 
 bool SerialPort::recv(unsigned char* buf){
   if ( _serial->readable() > 0 ){
     buf[0] = _serial->getc();
-        DPRINTF( " R:0x%x",*buf );
+    D_ZBSTACKF( " R:0x%x",*buf );
     return true;
   }else{
     return false;
@@ -735,7 +736,7 @@ bool SerialPort::send(unsigned char b){
   if (write(_fd, &b,1) != 1){
       return false;
   }else{
-      DPRINTF( " S:0x%x", b);
+	  D_ZBSTACKF( " S:0x%x", b);
       return true;
   }
 }
@@ -744,7 +745,7 @@ bool SerialPort::recv(unsigned char* buf){
   if(read(_fd, buf, 1) == 0){
       return false;
   }else{
-      DPRINTF( " R:0x%x",*buf );
+	  D_ZBSTACKF( " R:0x%x",*buf );
       return true;
   }
 }
@@ -909,19 +910,6 @@ void ZBResponse::setOption(uint8_t options){
 bool ZBResponse::isBrodcast(){
 	return ( _options && 0x02);
 }
-
-/**
- *  private functions
- */
-/*
-void ZBResponse::copyCommon(ZBResponse &target){
-	target.setAvailable(isAvailable());
-	target.setChecksum(getChecksum());
-	target.setErrorCode(getErrorCode());
-	target.setPayloadLength(getPayloadLength());
-	target.setMsbLength(getMsbLength());
-	target.setLsbLength(getLsbLength());
-}*/
 
 /*=========================================
            Class ZBRequest
