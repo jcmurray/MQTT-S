@@ -11,12 +11,12 @@
 //#define XBEE_FLOWCTL_CRTSCTS
 
 /*=================================
- *    Debug Condition
+ *      Debug Condition
  ==================================*/
 #define XBEE_DEBUG
 
 /*=================================
- *    print defs
+ *      print defs
  ==================================*/
 #ifdef XBEE_DEBUG
 #define DPRINTF(...)  printf(__VA_ARGS__)

@@ -8,7 +8,7 @@
 #define XBEE_DEBUG
 
 /*=================================
- *    Print defs for DEBUG
+ *    Print Defs for DEBUG
  ==================================*/
 #ifdef XBEE_DEBUG
 #define DPRINT(...)    debug.print(__VA_ARGS__)

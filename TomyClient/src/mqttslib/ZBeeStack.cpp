@@ -26,8 +26,9 @@
  * 
  *
  *  Created on: 2013/06/29
- *  Author:     Tomoaki YAMAGUCHI
- *  Version:    1.0.4
+ *    Modified: 2013/11/30
+ *      Author: Tomoaki YAMAGUCHI
+ *     Version: 1.1.0
  *
  */
 #ifndef ARDUINO
