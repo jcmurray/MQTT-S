@@ -67,6 +67,8 @@
 #define CL_ASLEEP        2
 #define CL_AWAKE         3
 
+#define SENDQ_SIZE    6
+
 using namespace tomyClient;
 
 /*=====================================
@@ -124,7 +126,7 @@ public:
 private:
     uint8_t   _queSize;
     uint8_t   _queCnt;
-    MqttsMessage*  _msg[5];
+    MqttsMessage*  _msg[SENDQ_SIZE];
 };
 
 

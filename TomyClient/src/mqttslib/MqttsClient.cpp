@@ -750,6 +750,9 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
     int retry = 0;
     while(retry < _nRetry){
     	/*------ Send Top message in SendQue -----*/
+    	if (getMsgRequestStatus() != MQTTS_MSG_REQUEST){
+    		return MQTTS_ERR_NO_ERROR;
+    	}
         _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
         _sendQ->getMessage(0)->setDup();
         _respTimer.start(packetReadTimeout * 1000);
@@ -779,11 +782,13 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
                     #endif
                 #endif
 
+
                 /* ----- Re send  Top message in SendQue ---*/
-                _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
 
-                setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
-
+				if (getMsgRequestStatus() == MQTTS_MSG_REQUEST){
+					_zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
+					setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
+				}
             }else if (getMsgRequestStatus() == MQTTS_MSG_REQUEST){
                 setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
             }
@@ -809,7 +814,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
  ======================================*/
 SendQue::SendQue(){
     _queCnt = 0;
-    _queSize = 5;
+    _queSize = SENDQ_SIZE;
 }
 SendQue::~SendQue(){
     for( int i = 0; i < _queCnt; i++){
@@ -819,9 +824,11 @@ SendQue::~SendQue(){
 
 int SendQue::addRequest(MqttsMessage* msg){
     if ( _queCnt < _queSize){
-		D_MQTT("\nAdd SendQue MsgType = 0x");
+		D_MQTTW("\nAdd SendQue size = ");
+		D_MQTT(_queCnt + 1, DEC);
+		D_MQTT(" MsgType = 0x")
 		D_MQTTLN(msg->getType(), HEX);
-		D_MQTTF("\nAdd SendQue MsgType = 0x%x\r\n", msg->getType());
+		D_MQTTF("%d  MsgType = 0x%x\r\n", _queCnt + 1, msg->getType());
 
         _msg[_queCnt] =new MqttsMessage();
         _msg[_queCnt++]->copy(msg);
@@ -832,9 +839,11 @@ int SendQue::addRequest(MqttsMessage* msg){
 
 int SendQue::addPriorityRequest(MqttsMessage* msg){
     if ( _queCnt < _queSize){
-		D_MQTT("\nAdd SendQue Top MsgType = 0x");
+		D_MQTTW("\nAdd SendQue Top Size = ");
+		D_MQTT(_queCnt + 1, DEC);
+		D_MQTT(" MsgType = 0x");
 		D_MQTTLN(msg->getType(), HEX);
-		D_MQTTF("\nAdd SendQue Top MsgType = 0x%x\r\n", msg->getType());
+		D_MQTTF("%d MsgType = 0x%x\r\n", _queCnt + 1, msg->getType());
 
         for(int i = _queCnt; i > 0; i--){
             _msg[i] = _msg[i - 1];
@@ -850,7 +859,6 @@ int SendQue::addPriorityRequest(MqttsMessage* msg){
 int SendQue::deleteRequest(uint8_t index){
     if ( index < _queCnt){
 
-    	D_MQTTW("\nDelete SendQue\r\n");
         delete _msg[index];
         _queCnt--;
         for(int i = index; i < _queCnt; i++){
@@ -859,6 +867,10 @@ int SendQue::deleteRequest(uint8_t index){
         for(int i = _queCnt; i < _queSize; i++){
             _msg[i] = NULL;
         }
+    	D_MQTTW("\nDelete SendQue  size = ");
+    	D_MQTTLN( _queCnt, DEC);
+    	D_MQTTF("%d\r\n", _queCnt);
+
         return 0;
     }
     return -2;

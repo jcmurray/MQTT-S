@@ -50,7 +50,7 @@ MQString* willmsg   = new MQString("willmsg");
 
 
 int fnTp1(MqttsPublish* msg){
-  printf("Execute fnTp1\n");
+  printf("***** Execute fnTp1****\n");
   return 0;
 }
 
