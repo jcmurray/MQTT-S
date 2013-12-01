@@ -62,7 +62,8 @@
 #endif
 
                               /* [sec] */
-#define MQTTS_DEFAULT_KEEPALIVE  900
+#define MQTTS_DEFAULT_KEEPALIVE 3600     // 1H
+#define MQTTS_DEFAULT_DURATION   900     // 15min
 #define MQTTS_TIME_SEARCHGW        3
 #define MQTTS_TIME_RETRY          10
 #define MQTTS_TIME_WAIT            3

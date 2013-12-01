@@ -50,7 +50,7 @@ MQString* willmsg   = new MQString("willmsg");
 
 
 int fnTp1(MqttsPublish* msg){
-  printf("***** Execute fnTp1****\n");
+  printf("****** Callback routine fnTp1() was executed.*****\n");
   return 0;
 }
 
@@ -78,20 +78,15 @@ int main(int argc, char **argv){
     mqtts.unsubscribe(topic0);
 
 
-   const char* dt = "ABCDEFG";
-
-    for(int i = 0; i < 10; i++){
-    	mqtts.publish(topic1,dt,5);
-    	mqtts.run();
-        sleep(20);
-    }
+    const char* dt = "ABCDEFG";
 
     while(true){
-    	//mqtts.execMsgRequest();
-    	mqtts.publish(topic1,dt,5);
-		sleep(20);
-    }
-
-	mqtts.disconnect();
-
+		for(int i = 0; i < 20; i++){
+			mqtts.publish(topic1,dt,5);
+			mqtts.run();
+			sleep(5);
+		}
+		mqtts.disconnect();
+		mqtts.setClean(false);
+   }
 }

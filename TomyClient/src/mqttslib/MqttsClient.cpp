@@ -416,7 +416,8 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
     	D_MQTTW("PUBLISH received\r\n");
         MqttsPublish mqMsg = MqttsPublish();
         mqMsg.setFrame(recvMsg);
-		*returnCode = _pubHdl.exec(&mqMsg,&_topics);
+		//*returnCode = _pubHdl.exec(&mqMsg,&_topics);   // ReturnCode
+		_pubHdl.exec(&mqMsg,&_topics);   // ReturnCode
 		if (mqMsg.getQos() && MQTTS_FLAG_QOS_1){
 			pubAck(mqMsg.getTopicId(), mqMsg.getMsgId(), MQTTS_RC_ACCEPTED);
 			run();
@@ -438,7 +439,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
                   setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
 
             }else{
-                *returnCode = MQTTS_ERR_REJECTED;
+                *returnCode = MQTTS_ERR_REJECTED;          // ReturnCode
                 setMsgRequestStatus(MQTTS_MSG_REJECTED);
             }
         }
@@ -473,23 +474,30 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  CONNACK  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_CONNACK){
-        D_MQTTW(" CONNACK received\r\n");
-        if (_qos == 1 && (getMsgRequestType() == MQTTS_TYPE_CONNECT ||
-                         getMsgRequestType() == MQTTS_TYPE_WILLMSG)){
+        D_MQTTW(" CONNACK received");
+        if ((getMsgRequestType() == MQTTS_TYPE_CONNECT || getMsgRequestType() == MQTTS_TYPE_WILLMSG)){
             MqttsConnack mqMsg = MqttsConnack();
             copyMsg(&mqMsg, recvMsg);
+
+            D_MQTT(" RC = 0x");
+            D_MQTT(mqMsg.getReturnCode(),HEX);
+            D_MQTTF(" RC = 0x%x", mqMsg.getReturnCode());
 
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
                 _status.recvCONNACK();
+
             }else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_CONGESTION){
-                clearMsgRequest();
-                connect();
+            	setMsgRequestStatus(MQTTS_MSG_COMPLETE);
+                _status.recvDISCONNECT();
             }else{
                setMsgRequestStatus(MQTTS_MSG_REJECTED);
-               *returnCode = MQTTS_ERR_REJECTED;
+               *returnCode = MQTTS_ERR_REJECTED;          // Return Code
+               //clearMsgRequest();
+               _status.recvDISCONNECT();
             }
         }
+        D_MQTTW("\r\n");
 
 /*---------  REGISTER  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_REGISTER){
@@ -555,7 +563,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
             }else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_CONGESTION){
                 setMsgRequestStatus(MQTTS_MSG_REQUEST);
             }else{
-                *returnCode = MQTTS_ERR_REJECTED;
+                *returnCode = MQTTS_ERR_REJECTED;       // Return Code
             }
         }
 
@@ -587,7 +595,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
             if (  _sendQ->addPriorityRequest((MqttsMessage*)&mqMsg) == 0){
                 setMsgRequestStatus(MQTTS_MSG_REQUEST);
             }else{
-                *returnCode = MQTTS_ERR_OUT_OF_MEMORY;
+                *returnCode = MQTTS_ERR_OUT_OF_MEMORY;   // Return Code
             }
         }
 
@@ -602,7 +610,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
             if (_sendQ->addPriorityRequest((MqttsMessage*)&mqMsg) == 0){
                 setMsgRequestStatus(MQTTS_MSG_REQUEST);
             }else{
-                *returnCode = MQTTS_ERR_OUT_OF_MEMORY;
+                *returnCode = MQTTS_ERR_OUT_OF_MEMORY;   // Return Code
             }
         }
     }
@@ -647,13 +655,12 @@ int MqttsClient::run(){
 
     while(true){
         rc = execMsgRequest();
-        if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) &&
-            getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-        	clearMsgRequest();
-        }else{
-            break;
-        }
-    }
+
+		if (rc == MQTTS_ERR_NO_ERROR){
+			break;
+		}
+	}
+    D_MQTTW("---- returned from run()\r\n ");
     return rc;
 }
 
@@ -664,7 +671,14 @@ int MqttsClient::execMsgRequest(){
     int rc;
 
     if (getMsgRequestStatus() == MQTTS_MSG_REQUEST || getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
-        if (_status.isLost()){
+
+    	if (_status.isAvailableToSend()){
+			/*-------- Send PUBLISH,SUBSCRIBE,REGISTER,DISCONNECT,PUBACK -------*/
+			return unicast(MQTTS_TIME_RETRY);
+		}
+
+    	if (_status.isLost()){
+    		/*------------ create SEARCHGW --------------*/
             if ( searchGw(ZB_BROADCAST_RADIUS_MAX_HOPS) == MQTTS_ERR_CANNOT_ADD_REQUEST){
                 return MQTTS_ERR_CANNOT_ADD_REQUEST;
             }
@@ -684,26 +698,18 @@ int MqttsClient::execMsgRequest(){
             }
         }
 
-        if (!_status.isConnected() && !_status.isSearching()){
-            /*-----------  Send CONNECT ----------*/
-           if (connect() == MQTTS_ERR_CANNOT_ADD_REQUEST){
-        	   return MQTTS_ERR_CANNOT_ADD_REQUEST;
-           }else{
-               rc = unicast(MQTTS_TIME_RETRY);
-               if(rc == MQTTS_ERR_RETRY_OVER){
-            	   _status.recvDISCONNECT();
-               }
-               if (rc == MQTTS_ERR_NO_ERROR && _qos == 0){
-                   _status.recvCONNACK();
-               }
-               return rc;
-           }
+        if (!_status.isConnected()){
+			/*-----------  Send CONNECT ----------*/
+			if (connect() == MQTTS_ERR_CANNOT_ADD_REQUEST){
+			   return MQTTS_ERR_CANNOT_ADD_REQUEST;
+			}else if(unicast(MQTTS_TIME_RETRY) == MQTTS_ERR_NO_ERROR){
+				   return MQTTS_ERR_NO_ERROR;
+			}
+			return MQTTS_ERR_NOT_CONNECTED;
+        }else{
+            return MQTTS_ERR_NO_ERROR;
         }
-        if (_status.isAvailableToSend()){
-            /*-------- Send PUBLISH,SUBSCRIBE,REGISTER,DISCONNECT,PUBACK -------*/
-            return unicast(MQTTS_TIME_RETRY);
-        }
-        return MQTTS_ERR_NOT_CONNECTED;
+
     }else{
         if (_status.isPINGREQRequired()){
             /*-------- Send PINGREQ -----------*/
@@ -756,17 +762,18 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
         _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
         _sendQ->getMessage(0)->setDup();
         _respTimer.start(packetReadTimeout * 1000);
+        _status.setLastSendTime();
 
         while(!_respTimer.isTimeUp()){
-            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ ) ||
-                              getMsgRequestType() == MQTTS_TYPE_PUBACK   ||
-                              getMsgRequestType() == MQTTS_TYPE_DISCONNECT   ||
+            if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_PINGREQ )  ||
+                              getMsgRequestType() == MQTTS_TYPE_PUBACK     ||
+                              getMsgRequestType() == MQTTS_TYPE_DISCONNECT ||
                               getMsgRequestStatus() == MQTTS_MSG_COMPLETE ){
             	clearMsgRequest();
-                _status.setLastSendTime();
                 return MQTTS_ERR_NO_ERROR;
 
             }else if (getMsgRequestStatus() == MQTTS_MSG_REJECTED){
+            	clearMsgRequest();
                 return MQTTS_ERR_REJECTED;
 
             }else if (getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
@@ -782,13 +789,10 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
                     #endif
                 #endif
 
-
                 /* ----- Re send  Top message in SendQue ---*/
+				_zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
+				setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
 
-				if (getMsgRequestStatus() == MQTTS_MSG_REQUEST){
-					_zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
-					setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
-				}
             }else if (getMsgRequestStatus() == MQTTS_MSG_REQUEST){
                 setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
             }
@@ -857,7 +861,9 @@ int SendQue::addPriorityRequest(MqttsMessage* msg){
 }
 
 int SendQue::deleteRequest(uint8_t index){
+	uint8_t type = 0;
     if ( index < _queCnt){
+    	type = _msg[index]->getType();
 
         delete _msg[index];
         _queCnt--;
@@ -869,8 +875,9 @@ int SendQue::deleteRequest(uint8_t index){
         }
     	D_MQTTW("\nDelete SendQue  size = ");
     	D_MQTTLN( _queCnt, DEC);
-    	D_MQTTF("%d\r\n", _queCnt);
-
+    	D_MQTT( " MsgType = 0x");
+    	D_MQTTLN(type, HEX);
+    	D_MQTTF("%d MsgType = 0x%x\r\n", _queCnt, type);
         return 0;
     }
     return -2;
@@ -918,8 +925,8 @@ ClientStatus::ClientStatus(){
 	_gwId = 0;
 	_gwStat = GW_LOST;
 	_clStat = CL_DISCONNECTED;
-	_keepAliveDuration = 0;
-	_advertiseDuration = 0;
+	_keepAliveDuration = MQTTS_DEFAULT_DURATION;
+	_advertiseDuration = MQTTS_DEFAULT_KEEPALIVE;
 	_keepAliveTimer.stop();
 	_advertiseTimer.stop();
 }
@@ -944,8 +951,9 @@ bool ClientStatus::isSearching(){
 	}
 }
 
+
 bool ClientStatus::isConnected(){
-	if(_gwStat == GW_FIND && _clStat == CL_ACTIVE){
+	if(_gwStat == GW_FIND && _clStat != CL_DISCONNECTED){
 		return true;
 	}else{
 		return false;
@@ -962,11 +970,11 @@ bool ClientStatus::isAvailableToSend(){
 }
 
 bool ClientStatus::isPINGREQRequired(){
-	return (_keepAliveTimer.isTimeUp((uint32_t)_keepAliveDuration * 1000) && (_clStat != CL_DISCONNECTED));
+	return (_keepAliveTimer.isTimeUp(_keepAliveDuration) && (_clStat != CL_DISCONNECTED));
 }
 
 bool ClientStatus::isGatewayAlive(){
-	if(_advertiseTimer.isTimeUp()){
+	if(_advertiseTimer.isTimeUp(_advertiseDuration)){
 		_gwStat = GW_LOST;
 		return false;
 	}else{
@@ -975,11 +983,11 @@ bool ClientStatus::isGatewayAlive(){
 }
 
 uint16_t ClientStatus::getKeepAlive(){
-	return _keepAliveDuration;
+	return _keepAliveDuration / 1000;
 }
 
 void ClientStatus::setKeepAlive(uint16_t sec){
-	_keepAliveDuration = sec;
+	_keepAliveDuration = sec * 1000;
 }
 
 void ClientStatus::sendSEARCHGW(){
@@ -995,7 +1003,8 @@ void ClientStatus::recvGWINFO(){
 void ClientStatus::recvADVERTISE(MqttsAdvertise* adv){
 	if ( adv->getGwId() == _gwId || _gwId == 0){
 		_advertiseTimer.start();
-		_advertiseDuration = adv->getDuration() * 1.5;
+		_advertiseDuration = (adv->getDuration() > 60 ?
+				adv->getDuration() * 1100 : adv->getDuration() * 1500);
 		_gwId = adv->getGwId();
 	}
 }
