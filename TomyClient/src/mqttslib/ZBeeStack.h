@@ -166,7 +166,7 @@ public:
 	uint8_t getFrameDataLength();
 	uint16_t getPacketLength();
 	uint16_t getRemoteAddress16();
-	uint8_t  getPayload(int index);
+	uint8_t  getPayload(uint8_t index);
 	uint8_t* getPayload();
 	uint8_t  getPayloadLength();
 	uint8_t  getOption();

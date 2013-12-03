@@ -68,25 +68,25 @@ int main(int argc, char **argv){
     mqtts.setKeepAlive(60);
 
     MQString *topic0 = new MQString("a/bcd/ef");
+    MQString *topic1 = new MQString("g/hij/kl");
 
     mqtts.registerTopic(topic0);
 
-    MQString *topic1 = new MQString("g/hij/kl");
-
-    mqtts.subscribe(topic1, fnTp1);
-
     mqtts.unsubscribe(topic0);
-
+    //mqtts.subscribe(topic1,&fnTp1);
 
     const char* dt = "ABCDEFG";
 
+
+    mqtts.registerTopic(topic1);
+
     while(true){
-		for(int i = 0; i < 20; i++){
+
+		for(int i = 0; i < 10; i++){
 			mqtts.publish(topic1,dt,5);
-			mqtts.run();
-			sleep(5);
+			mqtts.recvMsg(10000);
 		}
-		mqtts.disconnect();
 		mqtts.setClean(false);
+		mqtts.disconnect();
    }
 }

@@ -158,9 +158,11 @@ public:
     void setClean(bool clean);
     void setRetryMax(uint8_t cnt);
     void setGwAddress(XBeeAddress64& addr64, uint16_t addr16);
+    uint16_t getRxRemoteAddress16();
+    XBeeAddress64& getRxRemoteAddress64();
     MQString* getClientId();
 
-    int  connect();
+
     int  publish(MQString* topic, const char* data, int dataLength);
     int  publish(uint16_t predifinedId,  const char* data, int dataLength);
     int  registerTopic(MQString* topic);
@@ -170,32 +172,32 @@ public:
     int  unsubscribe(uint16_t predefinedId);
     int  disconnect(uint16_t duration = 0);
 
-    int  run();
-
     void recieveMessageHandler(ZBResponse* msg, int* returnCode);
     void publishHdl(MqttsPublish* msg);
-    void createTopic(MQString* topic, TopicCallback callback);
-    uint16_t getRxRemoteAddress16();
-    XBeeAddress64& getRxRemoteAddress64();
-    uint8_t getMsgRequestType();
-    uint8_t getMsgRequestStatus();
-    uint8_t getMsgRequestCount();
-    void   setMsgRequestStatus(uint8_t stat);
-
-    void   clearMsgRequest();
-    int    execMsgRequest();
+    void recvMsg(uint16_t msec);
 
 private:
+    int  exec();
+    void clearMsgRequest();
+    int  sendRecvMsg();
     int  requestSendMsg(MqttsMessage* msg);
     int  requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
     int  broadcast(uint16_t packetReadTimeout);
     int  unicast(uint16_t packetReadTimeout);
 
     int  searchGw(uint8_t radius);
+    int  connect();
     int  pingReq(MQString* clietnId);
     int  willTopic();
     int  willMsg();
     int  pubAck(uint16_t topicId, uint16_t msgId, uint8_t rc);
+    int  regAck(uint16_t topicId, uint16_t msgId, uint8_t rc);
+
+    uint8_t getMsgRequestType();
+    uint8_t getMsgRequestStatus();
+    uint8_t getMsgRequestCount();
+    void   setMsgRequestStatus(uint8_t stat);
+    void createTopic(MQString* topic, TopicCallback callback);
 
     void delayTime(uint16_t baseTime);
     void copyMsg(MqttsMessage* msg, ZBResponse* recvMsg);
@@ -218,7 +220,7 @@ private:
     MQString*         _willTopic;
     MQString*         _willMessage;
     uint16_t         _msgId;
-    ClientStatus     _status;
+    ClientStatus     _clientStatus;
 };
 
 

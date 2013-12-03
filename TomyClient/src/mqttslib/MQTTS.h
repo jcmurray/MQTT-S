@@ -214,6 +214,7 @@ public:
     bool  copy(MqttsMessage* src);
     void  reset();
     void  setMsgBuff(uint8_t* buff);
+    const char* getMsgTypeName();
 protected:
     uint8_t* _msgBuff;
 private:
