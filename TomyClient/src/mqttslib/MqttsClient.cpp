@@ -481,10 +481,12 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
     		 getMsgRequestType() == MQTTS_TYPE_PUBLISH)){
         MqttsPubAck mqMsg = MqttsPubAck();
         copyMsg(&mqMsg, recvMsg);
+
         D_MQTT("\nPUBACK received ReturnCode=");
         D_MQTTLN(mqMsg.getReturnCode(),HEX);
         D_MQTTLN();
         D_MQTTF("\nPUBACK received ReturnCode=%d\r\n", mqMsg.getReturnCode());
+
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 3)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
@@ -492,8 +494,8 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
             }else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_CONGESTION){
                   setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
 
-            }else{
-                *returnCode = MQTTS_ERR_REJECTED;          // ReturnCode
+            }else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_INVALID_TOPIC_ID){
+                *returnCode = MQTTS_ERR_INVALID_TOPICID;
                 setMsgRequestStatus(MQTTS_MSG_REJECTED);
             }
         }
@@ -692,6 +694,14 @@ int MqttsClient::exec(){
 		if(rc == MQTTS_ERR_NO_TOPICID){
 			break;
 		}
+		if(rc == MQTTS_ERR_INVALID_TOPICID){
+			break;
+		}
+		if (rc == MQTTS_ERR_RETRY_OVER &&
+			(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC ||
+			getMsgRequestType() == MQTTS_TYPE_WILLMSG) ){
+		    _clientStatus.recvDISCONNECT();
+		}
 	}
     D_MQTTW("---- returned from run()  rc = %d\r\n ", rc);
     return rc;
@@ -705,10 +715,13 @@ int MqttsClient::sendRecvMsg(){
 
     if (getMsgRequestStatus() == MQTTS_MSG_REQUEST || getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
     	/*======= Establish Connection ===========*/
-    	if (_clientStatus.isLost()){
+    	if (_clientStatus.isLost() ||_clientStatus.isSearching() ){
     		/*------------ Send SEARCHGW --------------*/
-            searchGw(ZB_BROADCAST_RADIUS_MAX_HOPS);
+    		if (getMsgRequestType() != MQTTS_TYPE_SEARCHGW){
+    			searchGw(ZB_BROADCAST_RADIUS_MAX_HOPS);
+			}
 			delayTime(MQTTS_TIME_SEARCHGW);
+
 			_clientStatus.sendSEARCHGW();
 			rc = broadcast(MQTTS_TIME_SEARCHGW);
 			if ( rc != MQTTS_ERR_NO_ERROR){
@@ -716,9 +729,11 @@ int MqttsClient::sendRecvMsg(){
 			}
         }
 
-        if (!_clientStatus.isConnected()){
+        if (!_clientStatus.isConnected() && !_clientStatus.isSearching()){
 			/*-----------  Send CONNECT ----------*/
-			connect();
+        	if (getMsgRequestType() != MQTTS_TYPE_CONNECT){
+        		connect();
+        	}
 			unicast(MQTTS_TIME_RETRY);
         }
 
@@ -823,7 +838,10 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
 				setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
             }
             /*----- Read response  ----*/
-            _zbee->readResp();
+            if(_zbee->readResp() == MQTTS_ERR_INVALID_TOPICID){
+            	clearMsgRequest();
+            	return MQTTS_ERR_INVALID_TOPICID;
+            }
 
             if (getMsgRequestStatus() == MQTTS_MSG_REQUEST &&
                 (getMsgRequestType() == MQTTS_TYPE_WILLTOPIC ||

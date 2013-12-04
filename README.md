@@ -1,6 +1,7 @@
 MQTT-S
 ======
-  MQTT-S Client over XBee  (running on linux and Arduino)  
+  MQTT-S Client over XBee  (running on linux)  
+  Compiling for Arduino has some trouble. this will be fixed soon.  
   
 
 Supported functions

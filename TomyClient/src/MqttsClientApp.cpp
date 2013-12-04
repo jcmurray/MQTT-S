@@ -83,7 +83,9 @@ int main(int argc, char **argv){
     while(true){
 
 		for(int i = 0; i < 10; i++){
-			mqtts.publish(topic1,dt,5);
+			if(mqtts.publish(topic1,dt,5) == MQTTS_ERR_INVALID_TOPICID){
+				mqtts.registerTopic(topic1);
+			}
 			mqtts.recvMsg(10000);
 		}
 		mqtts.setClean(false);
