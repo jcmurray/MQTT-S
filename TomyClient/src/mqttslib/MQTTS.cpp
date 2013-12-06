@@ -41,7 +41,7 @@
   #include <SoftwareSerial.h>
   #include <MQTTS.h>
 
-  #ifdef DEBUG
+  #if defined(MQTT_DEBUG) || defined(ZBEE_DEBUG)
     extern SoftwareSerial debug;
   #endif
 
@@ -130,6 +130,14 @@ int MQString::ncomp(MQString* str, long len){
         return memcmp(_constStr, str->getConstStr(), len);
     }
     return 1;
+}
+
+bool MQString::operator==(MQString &str){
+	return (comp(&str) == 0);
+}
+
+bool MQString::operator!=(MQString &str){
+	return (comp(&str) != 0);
 }
 
 
@@ -792,6 +800,15 @@ void MqttsPublish::setData(uint8_t* data, uint8_t len){
     setTopicId(_topicId);
     setMsgId(_msgId);
     setFlags(_flags);
+}
+
+void MqttsPublish::setData(MQString* str){
+	setLength(7 + str->getCharLength());
+	allocateBody();
+	setTopicId(_topicId);
+	setMsgId(_msgId);
+	setFlags(_flags);
+	str->writeBuf(getBody() + 5);
 }
 
 uint8_t*  MqttsPublish::getData(){

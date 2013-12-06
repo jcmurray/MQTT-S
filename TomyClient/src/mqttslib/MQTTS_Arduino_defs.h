@@ -6,6 +6,7 @@
  *    Debug Condition
  ==================================*/
 #define XBEE_DEBUG
+#define MQTT_DEBUG
 
 /*=================================
  *    Print Defs for DEBUG

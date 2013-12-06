@@ -95,6 +95,7 @@ public:
 	void recvDISCONNECT();
 	void recvPINGRESP();
 	void setLastSendTime();
+	void init();
 
 private:
 
@@ -164,6 +165,7 @@ public:
 
 
     int  publish(MQString* topic, const char* data, int dataLength);
+    int  publish(MQString* topic, MQString* data);
     int  publish(uint16_t predifinedId,  const char* data, int dataLength);
     int  registerTopic(MQString* topic);
     int  subscribe(MQString* topic, TopicCallback callback);
@@ -175,11 +177,12 @@ public:
     void recieveMessageHandler(ZBResponse* msg, int* returnCode);
     void publishHdl(MqttsPublish* msg);
     void recvMsg(uint16_t msec);
+    int  sendRecvMsg();
+    uint8_t getMsgRequestCount();
 
 private:
     int  exec();
     void clearMsgRequest();
-    int  sendRecvMsg();
     int  requestSendMsg(MqttsMessage* msg);
     int  requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
     int  broadcast(uint16_t packetReadTimeout);
@@ -195,7 +198,6 @@ private:
 
     uint8_t getMsgRequestType();
     uint8_t getMsgRequestStatus();
-    uint8_t getMsgRequestCount();
     void   setMsgRequestStatus(uint8_t stat);
     void createTopic(MQString* topic, TopicCallback callback);
 

@@ -68,22 +68,22 @@ int main(int argc, char **argv){
     mqtts.setKeepAlive(60);
 
     MQString *topic0 = new MQString("a/bcd/ef");
-    MQString *topic1 = new MQString("g/hij/kl");
+    MQString *topic1 = new MQString("dev/indicator");
 
     mqtts.registerTopic(topic0);
 
     mqtts.unsubscribe(topic0);
     //mqtts.subscribe(topic1,&fnTp1);
 
-    const char* dt = "ABCDEFG";
-
+    MQString* on = new MQString("on");
+    MQString* off = new MQString("off");
 
     mqtts.registerTopic(topic1);
 
     while(true){
 
 		for(int i = 0; i < 10; i++){
-			if(mqtts.publish(topic1,dt,5) == MQTTS_ERR_INVALID_TOPICID){
+			if(mqtts.publish(topic1,(i % 2 ? on : off)) == MQTTS_ERR_INVALID_TOPICID){
 				mqtts.registerTopic(topic1);
 			}
 			mqtts.recvMsg(10000);

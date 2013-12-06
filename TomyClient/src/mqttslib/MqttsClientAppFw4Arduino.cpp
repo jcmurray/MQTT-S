@@ -48,7 +48,7 @@ MqttsClientApplication* theApplication = NULL;
 enum MQ_INT_STATUS MQ_intStat;
 enum MQ_INT_STATUS MQ_wdtStat;
 
-#ifdef DEBUG
+#if defined(MQTT_DEBUG) || defined(ZBEE_DEBUG)
 	#include <SoftwareSerial.h>
 	extern SoftwareSerial debug;
 #endif
@@ -178,6 +178,15 @@ void MqttsClientApplication::setInterrupt(){
     attachInterrupt(0,MQInt0,LOW);
 }
 
+
+void MqttsClientApplication::indicatorOn(){
+    digitalWrite(MQ_LED_PIN,MQ_ON);
+}
+
+void MqttsClientApplication::indicatorOff(){
+    digitalWrite(MQ_LED_PIN,MQ_OFF);
+}
+
 void MqttsClientApplication::blinkIndicator(int msec){
     digitalWrite(MQ_LED_PIN,MQ_ON);
     delay(msec);
@@ -215,9 +224,6 @@ void MqttsClientApplication::init(const char* clientNameId){
     _mqtts.init(clientNameId);
 }
 	
-int MqttsClientApplication::connect(){
-    return _mqtts.connect();
-}
 
 int MqttsClientApplication::registerTopic(MQString* topic){
     return _mqtts.registerTopic(topic);
@@ -270,29 +276,6 @@ void MqttsClientApplication::setClean(bool clean){
     _mqtts.setClean(clean);
 }
 
-uint8_t MqttsClientApplication::getMsgRequestType(){
-    return _mqtts.getMsgRequestType();
-}
-
-uint8_t MqttsClientApplication::getMsgRequestStatus(){
-    return _mqtts.getMsgRequestStatus();
-}
-
-void MqttsClientApplication::clearMsgRequest(){
-    _mqtts.clearMsgRequest();
-}
-
-uint8_t MqttsClientApplication::getMsgRequestCount(){
-    return _mqtts.getMsgRequestCount();
-}
-
-int MqttsClientApplication::execMsgRequest(){
-    return _mqtts.execMsgRequest();
-}
-
-void MqttsClientApplication::setMsgRequestStatus(uint8_t stat){
-    return _mqtts.setMsgRequestStatus(stat);
-}
 
 void MqttsClientApplication::startWdt(){
     _wdTimer.start();
@@ -301,25 +284,16 @@ void MqttsClientApplication::startWdt(){
 void MqttsClientApplication::stopWdt(){
     _wdTimer.stop();
 }
-	
-void MqttsClientApplication::run(){
-    _mqtts.run();
-}
 
-void MqttsClientApplication::runLoop(){
-
-    while(true){
-        int rc = execMsgRequest();
-        if ((rc != MQTTS_ERR_NO_ERROR || getMsgRequestCount() != 0) &&
-                getMsgRequestStatus() != MQTTS_MSG_REQUEST){
-                clearMsgRequest();
-                D_MQTT(" ErrCode=");
-                D_MQTTLN(rc,DEC);
-        }
-        if (getMsgRequestCount() == 0){
-            checkInterupt();
-        }
-    }
+void MqttsClientApplication::recvMsg(uint16_t msec){
+	XTimer tm = XTimer();
+	tm.start(msec);
+	while(!tm.isTimeUp()){
+		_mqtts.sendRecvMsg();
+		if(_mqtts.getMsgRequestCount() == 0){
+			checkInterupt();
+		}
+	}
 }
 
 void MqttsClientApplication::setUnixTime(MqttsPublish* msg){

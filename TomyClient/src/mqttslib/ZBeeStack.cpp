@@ -31,6 +31,7 @@
  *     Version: 1.1.0
  *
  */
+
 #ifndef ARDUINO
         #include "MQTTS_Defines.h"
 #else
@@ -214,16 +215,16 @@ void XTimer::stop(){
  *  For Arduino
  */
 SerialPort::SerialPort(){
-  _serial = NULL;
+  _serialDev = NULL;
 }
 
 void SerialPort::begin(long baudrate){
   Serial.begin(baudrate);
-  _serial = (Stream*) &Serial;
+  _serialDev = (Stream*) &Serial;
 }
 
 bool SerialPort::send(unsigned char b){
-  if(_serial->write(b) != 1){
+  if(_serialDev->write(b) != 1){
       return false;
   }else{
 	  D_ZBSTACK(" s:0x");
@@ -233,8 +234,8 @@ bool SerialPort::send(unsigned char b){
 }
 
 bool SerialPort::recv(unsigned char* buf){
-  if ( _serial->available() > 0 ){
-    buf[0] = _serial->read();
+  if ( _serialDev->available() > 0 ){
+    buf[0] = _serialDev->read();
     D_ZBSTACK(" r:0x");
     D_ZBSTACK(*buf,HEX);
     return true;
@@ -244,7 +245,7 @@ bool SerialPort::recv(unsigned char* buf){
 }
 
 void SerialPort::flush(void){
-  _serial->flush();
+  _serialDev->flush();
 }
 
 #endif /* ARDUINO */
@@ -254,23 +255,23 @@ void SerialPort::flush(void){
  *  For MBED
  */
 SerialPort::SerialPort(){
-  _serial = new Serial(ZB_MBED_SERIAL_TXPIN, ZB_MBED_SERIAL_RXPIN);
+  _serialDev = new Serial(ZB_MBED_SERIAL_TXPIN, ZB_MBED_SERIAL_RXPIN);
 }
 
 void SerialPort::begin(long baudrate){
-  _serial->baud(baudrate);
-  _serial->format(8,Serial::None,1);
+  _serialDev->baud(baudrate);
+  _serialDev->format(8,Serial::None,1);
 }
 
 bool SerialPort::send(unsigned char b){
-  _serial->putc(b);
+  _serialDev->putc(b);
         D_ZBSTACKF( " S:0x%x", b);
       return true;
 }
 
 bool SerialPort::recv(unsigned char* buf){
-  if ( _serial->readable() > 0 ){
-    buf[0] = _serial->getc();
+  if ( _serialDev->readable() > 0 ){
+    buf[0] = _serialDev->getc();
     D_ZBSTACKF( " R:0x%x",*buf );
     return true;
   }else{
@@ -279,7 +280,7 @@ bool SerialPort::recv(unsigned char* buf){
 }
 
 void SerialPort::flush(void){
-  //_serial->flush();
+  //_serialDev->flush();
 }
 
 #endif /* MBED */
@@ -368,6 +369,7 @@ void SerialPort::flush(void){
   tcsetattr(_fd, TCSAFLUSH, &_tio);
 }
 
+#endif
 
 /*=========================================
              Class XBeeAddress64
@@ -958,7 +960,6 @@ uint8_t ZBeeStack::getAddrByte(uint8_t pos){
 }
 
 
-#endif  /* LINUX */
 
 
 

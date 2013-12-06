@@ -112,11 +112,12 @@ public:
 	void setClientId(MQString* id);
 	void sleepApp();
 	void blinkIndicator(int msec);
+	void indicatorOn();
+	void indicatorOff();
 	void sleepXB();
 	void wakeupXB();
 	void setSleepMode(uint8_t sleepMode);
 	
-	int connect();
 	int registerTopic(MQString* topic);
 	int publish(MQString* topic, const char* data, int dataLength);
 	int publish(uint16_t predefinedId, const char* data, int dataLength);
@@ -127,21 +128,14 @@ public:
 
 	void startWdt();
 	void stopWdt();
-	void run();
-	void runLoop();
+	void recvMsg(uint16_t msec);
 	void setUnixTime(MqttsPublish* msg);
 	long getUnixTime();
 
 private:
-	uint8_t getMsgRequestType();
-	uint8_t getMsgRequestStatus();
-	uint8_t getMsgRequestCount();
-	void clearMsgRequest();
-	int  execMsgRequest();
-	void setMsgRequestStatus(uint8_t stat);
 	void checkInterupt();
 	void interruptHandler();
-        void setInterrupt();
+    void setInterrupt();
 	
 	MqttsClient _mqtts;
 	bool _txFlag;

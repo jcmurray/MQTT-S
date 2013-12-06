@@ -185,6 +185,8 @@ public:
     char*  getStr();
     const char* getConstStr();
     bool    isConst();
+    bool operator==(MQString&);
+    bool operator!=(MQString&);
 private:
     void    freeStr();
     uint16_t _length;
@@ -411,6 +413,7 @@ public:
     void setDup();
     uint16_t getMsgId();
     void setData(uint8_t* data, uint8_t len);
+    void setData(MQString* str);
     void setFrame(uint8_t* data, uint8_t len);
     void setFrame(ZBResponse* resp);
     uint8_t* getData();

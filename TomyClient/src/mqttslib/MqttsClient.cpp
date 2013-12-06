@@ -40,7 +40,7 @@
 #ifdef ARDUINO
   #include <MqttsClient.h>
 
-  #ifdef DEBUG
+  #if defined(MQTT_DEBUG) || defined(ZBEE_DEBUG)
         #include <SoftwareSerial.h>
         extern SoftwareSerial debug;
   #endif
@@ -280,6 +280,25 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
         mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
         mqttsMsg.setTopicId(topicId);
         mqttsMsg.setData((uint8_t*)data, (uint8_t)dataLength);
+        if (_qos){
+            mqttsMsg.setMsgId(getNextMsgId());
+        }
+        requestSendMsg((MqttsMessage*)&mqttsMsg);
+        return exec();
+    }else{
+    	D_MQTTW("PUBLISH unkown TopicId\r\n");
+    	return MQTTS_ERR_NO_TOPICID;
+    }
+}
+
+/*--------- PUBLISH ------*/
+int MqttsClient::publish(MQString* topic, MQString* data){
+    uint16_t topicId = _topics.getTopicId(topic);
+    if (topicId){
+        MqttsPublish mqttsMsg = MqttsPublish();
+        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
+        mqttsMsg.setTopicId(topicId);
+        mqttsMsg.setData(data);
         if (_qos){
             mqttsMsg.setMsgId(getNextMsgId());
         }
@@ -684,6 +703,7 @@ int MqttsClient::requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr){
 /*-------------  send Message once -----------------*/
 int MqttsClient::exec(){
     int rc;
+    int cnt = 0;
 
     while(true){
         rc = sendRecvMsg();
@@ -698,12 +718,28 @@ int MqttsClient::exec(){
 			break;
 		}
 		if (rc == MQTTS_ERR_RETRY_OVER &&
+			  getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
+			_clientStatus.recvDISCONNECT();
+		}
+		if (rc == MQTTS_ERR_RETRY_OVER &&
 			(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC ||
 			getMsgRequestType() == MQTTS_TYPE_WILLMSG) ){
-		    _clientStatus.recvDISCONNECT();
+			clearMsgRequest();
+			_clientStatus.recvDISCONNECT();
+		}
+		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_CONNECT){
+			if(cnt++ > 5){
+				cnt = 0;
+				_clientStatus.init();
+				clearMsgRequest();
+			}else{
+				setMsgRequestStatus(MQTTS_MSG_REQUEST);
+			}
 		}
 	}
-    D_MQTTW("---- returned from run()  rc = %d\r\n ", rc);
+    D_MQTTW("---- returned from run()  rc = ");
+    D_MQTTLN(rc, DEC);
+    D_MQTTF("%d\r\n", rc);
     return rc;
 }
 
@@ -872,7 +908,7 @@ int SendQue::addRequest(MqttsMessage* msg){
     if ( _queCnt < _queSize){
 		D_MQTTW("\nAdd SendQue size = ");
 		D_MQTT(_queCnt + 1, DEC);
-		D_MQTT(" Msg = 0x")
+		D_MQTT(" Msg = 0x");
 		D_MQTTLN(msg->getType(), HEX);
 		D_MQTTF("%d  Msg = 0x%x\r\n", _queCnt + 1, msg->getType());
 
@@ -987,6 +1023,11 @@ ClientStatus::ClientStatus(){
 
 ClientStatus::~ClientStatus(){
 
+}
+
+void ClientStatus::init(){
+	_gwStat = GW_LOST;
+	_clStat = CL_DISCONNECTED;
 }
 
 bool ClientStatus::isLost(){

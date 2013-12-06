@@ -251,7 +251,7 @@ public:
 	void flush();
 
 private:
-	Stream* _serial;
+	Stream* _serialDev;
 };
 #endif /* ARDUINO */
 
@@ -268,7 +268,7 @@ public:
 	void flush();
 
 private:
-        Serial* _serial;
+        Serial* _serialDev;
 };
 #endif /* MBED */
 
