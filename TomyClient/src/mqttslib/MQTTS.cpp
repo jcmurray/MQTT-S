@@ -803,7 +803,7 @@ void MqttsPublish::setData(uint8_t* data, uint8_t len){
 }
 
 void MqttsPublish::setData(MQString* str){
-	setLength(7 + str->getCharLength());
+	setLength(9 + str->getCharLength());
 	allocateBody();
 	setTopicId(_topicId);
 	setMsgId(_msgId);
