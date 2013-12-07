@@ -17,22 +17,35 @@ Supported functions
 
 Implemented message flows:   
 
-             Client              Gateway  
-                |                   |    
-     Publish -->| --- SERCHGW ----> |  
-                | <-- GWINFO  ----- |  
-                | --- CONNECT ----> |  
-                | <--WILLTOPICREQ-- |  
-                | --- WILLTOPIC --> |  
-                | <-- WILLMSGREQ -- |
-                | --- WILLMSG ----> |  
-                | <-- CONNACK ----- |  
-                | --- PUBLISH ----> |  
-                | <-- PUBACK  ----- |  Invalid TopicId  
-                | --- REGISTER ---> |  
-                | <-- REGACK  ----- |  
-                | --- PUBLISH ----> |  
-                | <-- PUBACK  ----- |  
+             Client              Gateway               Broker
+                |                   |                    |      
+     Publish -->| --- SERCHGW ----> |                    |  
+                | <-- GWINFO  ----- |                    |  
+                | --- CONNECT ----> |                    |  
+                | <--WILLTOPICREQ-- |                    |  
+                | --- WILLTOPIC --> |                    |  
+                | <-- WILLMSGREQ -- |                    |  
+                | --- WILLMSG ----> | ---- CONNECT ----> |(accepted)     
+                | <-- CONNACK ----- | <--- CONNACK ----- |   
+                | --- PUBLISH ----> |                    |  
+                | <-- PUBACK  ----- | (invalid TopicId)  |  
+                | --- REGISTER ---> |                    |  
+                | <-- REGACK  ----- |                    |  
+                | --- PUBLISH ----> | ---- PUBLISH ----> |(accepted)  
+                | <-- PUBACK  ----- | <---- PUBACK ----- |  
+                |                   |                    |
+                //                  //                   //  
+                |                   |                    |
+   Subscribe -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> | 
+ (set Callback) | <-- SUBACK ------ | <--- SUBACK ------ |  
+                |                   |                    |
+                //                  //                   //  
+                |                   |                    |   
+                | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUPLISH  
+(exec Callback) | <-- PUBLISH  ---- |                    |  
+                | --- PUBACK   ---> | ---- PUBACK  ----> |--> PUBACK  
+                |                   |                    |  
+                  
                 
 
 Usage
