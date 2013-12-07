@@ -20,34 +20,34 @@ Implemented control flows:
    Message flow as berrow is conducted automaticaly.  
 
 
-               Client              Gateway               Broker
-                  |                   |                    |      
-       publish -->| --- SERCHGW ----> |                    |  
-                  | <-- GWINFO  ----- |                    |  
-                  | --- CONNECT ----> |                    |  
-                  | <--WILLTOPICREQ-- |                    |  
-                  | --- WILLTOPIC --> |                    |  
-                  | <-- WILLMSGREQ -- |                    |  
-                  | --- WILLMSG ----> | ---- CONNECT ----> |(accepted)     
-                  | <-- CONNACK ----- | <--- CONNACK ----- |   
-                  | --- PUBLISH ----> |                    |  
-                  | <-- PUBACK  ----- | (invalid TopicId)  |  
-                  | --- REGISTER ---> |                    |  
-                  | <-- REGACK  ----- |                    |  
-                  | --- PUBLISH ----> | ---- PUBLISH ----> |(accepted)  
-                  | <-- PUBACK  ----- | <---- PUBACK ----- |    
-                  |                   |                    |    
-                  //                  //                   //      
-                  |                   |                    |          
-     pubscribe -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
-     set Callback | <-- SUBACK ------ | <--- SUBACK ------ |    
-                  |                   |                    |    
-                  //                  //                   //    
-                  |                   |                    |    
-                  | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUBLISH  
-    exec Callback | <-- PUBLISH  ---- |                    |  
-                  | --- PUBACK   ---> | ---- PUBACK  ----> |--> PUBACK  
-                  |                   |                    |  
+                 Client              Gateway               Broker
+                    |                   |                    |      
+       publish() -->| --- SERCHGW ----> |                    |  
+                    | <-- GWINFO  ----- |                    |  
+                    | --- CONNECT ----> |                    |  
+                    | <--WILLTOPICREQ-- |                    |  
+                    | --- WILLTOPIC --> |                    |  
+                    | <-- WILLMSGREQ -- |                    |  
+                    | --- WILLMSG ----> | ---- CONNECT ----> |(accepted)     
+                    | <-- CONNACK ----- | <--- CONNACK ----- |   
+                    | --- PUBLISH ----> |                    |  
+                    | <-- PUBACK  ----- | (invalid TopicId)  |  
+                    | --- REGISTER ---> |                    |  
+                    | <-- REGACK  ----- |                    |  
+                    | --- PUBLISH ----> | ---- PUBLISH ----> |(accepted)  
+                    | <-- PUBACK  ----- | <---- PUBACK ----- |    
+                    |                   |                    |    
+                    //                  //                   //      
+                    |                   |                    |          
+     subscribe() -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
+     (set Callback) | <-- SUBACK ------ | <--- SUBACK ------ |    
+                    |                   |                    |    
+                    //                  //                   //    
+                    |                   |                    |    
+                    | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUBLISH  
+    (exec Callback) | <-- PUBLISH  ---- |                    |  
+                    | --- PUBACK   ---> | ---- PUBACK  ----> |--> PUBACK  
+                    |                   |                    |  
                 
 
 Usage
