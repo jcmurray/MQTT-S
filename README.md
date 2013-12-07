@@ -1,7 +1,7 @@
 MQTT-S
 ======
-  MQTT-S Client over XBee  (running on linux)  
-  Compiling for Arduino has some trouble. this will be fixed soon.  
+  MQTT-S Client over XBee  (running on linux and Arduino)  
+  
   
 
 Supported functions
@@ -11,10 +11,29 @@ Supported functions
 *  Automatic SEARCHGW, GWINFO
 *  Automatic CONNECT, WILLTOPICREQ, WILLTOPIC, WILLMSGREQ, WILLMSG
 *  Automatic PINGREQ, PINGRESP
-*  Automatic CONNACK, REGACK, SUBACK, PUBACK, UNSUBACK
+*  Automatic CONNACK, REGISTER, REGACK, SUBACK, PUBACK, UNSUBACK
 *  
-*  REGISTER, SUBSCRIBE, PUBLISH, UNSUBSCRIBE, DISCONNECT
+*  SUBSCRIBE, PUBLISH, UNSUBSCRIBE, DISCONNECT
 
+Implemented message flows:   
+
+             Client              Gateway  
+                |                   |    
+     Publish -->| --- SERCHGW ----> |  
+                | <-- GWINFO  ----- |  
+                | --- CONNECT ----- |  
+                | <--WILLTOPICREQ-- |  
+                | --- WILLTOPIC --> |  
+                | <-- WILLMSGREQ -- |
+                | --- WILLMSG ----> |  
+                | <-- CONNACK ----- |  
+                | --- PUBLISH ----> |  
+                | <-- PUBACK  ----- |  Invalid TopicId  
+                | --- REGISTER ---> |  
+                | <-- REGACK  ----- |  
+                | --- PUBLISH ----> |  
+                | <-- PUBACK  ----- |  
+                
 
 Usage
 ------

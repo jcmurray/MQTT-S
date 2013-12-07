@@ -230,7 +230,7 @@ int MqttsClientApplication::registerTopic(MQString* topic){
 }
 
 int MqttsClientApplication::publish(MQString* topic, const char* data, int dataLength){
-    return _mqtts.publish(topic, data, dataLength);
+	return _mqtts.publish(topic, data, dataLength);
 }
 
 int MqttsClientApplication::subscribe(MQString* topic, TopicCallback callback){

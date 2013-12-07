@@ -303,7 +303,15 @@ int MqttsClient::publish(MQString* topic, MQString* data){
             mqttsMsg.setMsgId(getNextMsgId());
         }
         requestSendMsg((MqttsMessage*)&mqttsMsg);
-        return exec();
+
+        int rc = exec();
+
+		if( rc == MQTTS_ERR_INVALID_TOPICID){
+			registerTopic(topic);
+			rc = exec();
+		}
+		return rc;
+
     }else{
     	D_MQTTW("PUBLISH unkown TopicId\r\n");
     	return MQTTS_ERR_NO_TOPICID;
@@ -749,30 +757,31 @@ int MqttsClient::exec(){
 int MqttsClient::sendRecvMsg(){
     int rc = 0;
 
-    if (getMsgRequestStatus() == MQTTS_MSG_REQUEST || getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
-    	/*======= Establish Connection ===========*/
-    	if (_clientStatus.isLost() ||_clientStatus.isSearching() ){
-    		/*------------ Send SEARCHGW --------------*/
-    		if (getMsgRequestType() != MQTTS_TYPE_SEARCHGW){
-    			searchGw(ZB_BROADCAST_RADIUS_MAX_HOPS);
-			}
-			delayTime(MQTTS_TIME_SEARCHGW);
 
-			_clientStatus.sendSEARCHGW();
-			rc = broadcast(MQTTS_TIME_SEARCHGW);
-			if ( rc != MQTTS_ERR_NO_ERROR){
-				return rc;
-			}
-        }
+	/*======= Establish Connection ===========*/
+	if (_clientStatus.isLost() ||_clientStatus.isSearching() ){
+		/*------------ Send SEARCHGW --------------*/
+		if (getMsgRequestType() != MQTTS_TYPE_SEARCHGW){
+			searchGw(ZB_BROADCAST_RADIUS_MAX_HOPS);
+		}
+		delayTime(MQTTS_TIME_SEARCHGW);
 
-        if (!_clientStatus.isConnected() && !_clientStatus.isSearching()){
-			/*-----------  Send CONNECT ----------*/
-        	if (getMsgRequestType() != MQTTS_TYPE_CONNECT){
-        		connect();
-        	}
-			unicast(MQTTS_TIME_RETRY);
-        }
+		_clientStatus.sendSEARCHGW();
+		rc = broadcast(MQTTS_TIME_SEARCHGW);
+		if ( rc != MQTTS_ERR_NO_ERROR){
+			return rc;
+		}
+	}
 
+	if (!_clientStatus.isConnected() && !_clientStatus.isSearching()){
+		/*-----------  Send CONNECT ----------*/
+		if (getMsgRequestType() != MQTTS_TYPE_CONNECT){
+			connect();
+		}
+		unicast(MQTTS_TIME_RETRY);
+	}
+
+	if (getMsgRequestStatus() == MQTTS_MSG_REQUEST || getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
         /*======  Send Message =======*/
         if (_clientStatus.isAvailableToSend()){
 			return unicast(MQTTS_TIME_RETRY);

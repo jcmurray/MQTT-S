@@ -78,14 +78,11 @@ int main(int argc, char **argv){
     MQString* on = new MQString("on");
     MQString* off = new MQString("off");
 
-    mqtts.registerTopic(topic1);
 
     while(true){
 
 		for(int i = 0; i < 10; i++){
-			if(mqtts.publish(topic1,(i % 2 ? on : off)) == MQTTS_ERR_INVALID_TOPICID){
-				mqtts.registerTopic(topic1);
-			}
+			mqtts.publish(topic1,(i % 2 ? on : off));
 			mqtts.recvMsg(10000);
 		}
 		mqtts.setClean(false);
