@@ -40,12 +40,12 @@ Implemented control flows:
                     //                  //                   //      
                     |                   |                    |          
      subscribe() -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
-     (set Callback) | <-- SUBACK ------ | <--- SUBACK ------ |    
+     [set Callback] | <-- SUBACK ------ | <--- SUBACK ------ |    
                     |                   |                    |    
                     //                  //                   //    
                     |                   |                    |    
                     | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUBLISH  
-    (exec Callback) | <-- PUBLISH  ---- |                    |  
+    [exec Callback] | <-- PUBLISH  ---- |                    |  
                     | --- PUBACK   ---> | ---- PUBACK  ----> |--> PUBACK  
                     |                   |                    |  
                 
