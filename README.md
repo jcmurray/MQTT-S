@@ -21,7 +21,7 @@ Implemented message flows:
                 |                   |    
      Publish -->| --- SERCHGW ----> |  
                 | <-- GWINFO  ----- |  
-                | --- CONNECT ----- |  
+                | --- CONNECT ----> |  
                 | <--WILLTOPICREQ-- |  
                 | --- WILLTOPIC --> |  
                 | <-- WILLMSGREQ -- |
