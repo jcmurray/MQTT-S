@@ -32,14 +32,14 @@ Implemented message flows:
                 | --- REGISTER ---> |                    |  
                 | <-- REGACK  ----- |                    |  
                 | --- PUBLISH ----> | ---- PUBLISH ----> |(accepted)  
-                | <-- PUBACK  ----- | <---- PUBACK ----- |  
-                |                   |                    |  
+                | <-- PUBACK  ----- | <---- PUBACK ----- |    
+                |                   |                    |    
+                //                  //                   //      
+                |                   |                    |        
+   Subscribe -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
+ (set Callback) | <-- SUBACK ------ | <--- SUBACK ------ |    
+                |                   |                    |    
                 //                  //                   //    
-                |                   |                    |  
-   Subscribe -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |   
- (set Callback) | <-- SUBACK ------ | <--- SUBACK ------ |  
-                |                   |                    |  
-                //                  //                   //  
                 |                   |                    |    
                 | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUPLISH  
 (exec Callback) | <-- PUBLISH  ---- |                    |  
