@@ -15,12 +15,14 @@ Supported functions
 *  
 *  SUBSCRIBE, PUBLISH, UNSUBSCRIBE, DISCONNECT
 
-Implemented message flows:   
+Implemented control flows:  
+   Application program executes publish() function,   
+   Message flow as berrow is conducted automaticaly.  
 
 
                Client              Gateway               Broker
                   |                   |                    |      
-       Publish -->| --- SERCHGW ----> |                    |  
+       publish -->| --- SERCHGW ----> |                    |  
                   | <-- GWINFO  ----- |                    |  
                   | --- CONNECT ----> |                    |  
                   | <--WILLTOPICREQ-- |                    |  
@@ -37,12 +39,12 @@ Implemented message flows:
                   |                   |                    |    
                   //                  //                   //      
                   |                   |                    |          
-     Subscribe -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
+     pubscribe -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
      set Callback | <-- SUBACK ------ | <--- SUBACK ------ |    
                   |                   |                    |    
                   //                  //                   //    
                   |                   |                    |    
-                  | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUPLISH  
+                  | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUBLISH  
     exec Callback | <-- PUBLISH  ---- |                    |  
                   | --- PUBACK   ---> | ---- PUBACK  ----> |--> PUBACK  
                   |                   |                    |  
@@ -122,9 +124,9 @@ Client application sample which is used for debug.
     mqtts.setWillMessage(willmsg);      // set WILLMSG  those are sent automatically. 
     mqtts.setKeepAlive(60000);          // PINGREQ interval time
 
-    mqtts.subscribe(topic, callback);   // Execute the callback, when the subscribed topic's data is published.
-    mqtts.registerTopic(topic);         // Register topic and aquire a Topic ID 
+    mqtts.subscribe(topic, callback);   // Execute the callback, when the subscribed topic's data is published. 
     mqtts.publish(topic, payload, payload_length); // publish the data, topic is converted into ID automatically.
+    mqtts.publish(topic, MQString* payload);  
     mqtts.unsubscribe(topic);  
     mqtts.disconnect();
 
