@@ -313,8 +313,8 @@ int MqttsClient::publish(MQString* topic, MQString* data){
 		return rc;
 
     }else{
-    	D_MQTTW("PUBLISH unkown TopicId\r\n");
-    	return MQTTS_ERR_NO_TOPICID;
+    	registerTopic(topic);
+		return  exec();
     }
 }
 
@@ -492,7 +492,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
     		D_MQTTW("PUBLISH received\r\n");
 			MqttsPublish mqMsg = MqttsPublish();
 			mqMsg.setFrame(recvMsg);
-			_pubHdl.exec(&mqMsg,&_topics);   // ReturnCode
+			_pubHdl.exec(&mqMsg,&_topics);   // Execute Callback routine
 			if (mqMsg.getQos() && MQTTS_FLAG_QOS_1){
 				pubAck(mqMsg.getTopicId(), mqMsg.getMsgId(), MQTTS_RC_ACCEPTED);
 			}
@@ -509,10 +509,9 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
         MqttsPubAck mqMsg = MqttsPubAck();
         copyMsg(&mqMsg, recvMsg);
 
-        D_MQTT("\nPUBACK received ReturnCode=");
-        D_MQTTLN(mqMsg.getReturnCode(),HEX);
-        D_MQTTLN();
-        D_MQTTF("\nPUBACK received ReturnCode=%d\r\n", mqMsg.getReturnCode());
+        D_MQTTW("\nPUBACK received ReturnCode=");
+        D_MQTTLN(mqMsg.getReturnCode(),DEC);
+        D_MQTTF("%d\r\n", mqMsg.getReturnCode());
 
         if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 3)){
             if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
@@ -525,14 +524,16 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
                 *returnCode = MQTTS_ERR_INVALID_TOPICID;
                 setMsgRequestStatus(MQTTS_MSG_REJECTED);
             }
+        }else{
+        	D_MQTTW("MsgId dosn't match.\r\n");
         }
 
 /*---------  PINGRESP  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_PINGRESP){
         D_MQTTW(" PINGRESP received\r\n");
 
-        _clientStatus.recvPINGRESP();
         if (getMsgRequestType() == MQTTS_TYPE_PINGREQ){
+        	_clientStatus.recvPINGRESP();
             setMsgRequestStatus(MQTTS_MSG_COMPLETE);
         }
 
@@ -614,8 +615,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
         MqttsSubAck mqMsg = MqttsSubAck();
         copyMsg(&mqMsg, recvMsg);
 
-        D_MQTTLN();
-        D_MQTT("SUBACK ReturnCode=");
+        D_MQTT("\nSUBACK ReturnCode=");
         D_MQTTLN(mqMsg.getReturnCode(),HEX);
         D_MQTTF("\nSUBACK ReturnCode=%d\r\n", mqMsg.getReturnCode());
 
@@ -655,7 +655,6 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_WILLTOPICREQ){
         D_MQTTW(" WILLTOPICREQ received\r\n");
         if (getMsgRequestType() == MQTTS_TYPE_CONNECT){
-            //setMsgRequestStatus(MQTTS_MSG_COMPLETE);
             clearMsgRequest();
             MqttsWillTopic mqMsg = MqttsWillTopic();
             mqMsg.setWillTopic(_willTopic);
@@ -666,7 +665,6 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_WILLMSGREQ){
         D_MQTTW(" WILLMSGREQ received\r\n");
         if (getMsgRequestType() == MQTTS_TYPE_WILLTOPIC){
-            //setMsgRequestStatus(MQTTS_MSG_COMPLETE);
             clearMsgRequest();
             MqttsWillMsg mqMsg = MqttsWillMsg();
             mqMsg.setWillMsg(_willMessage);
@@ -793,7 +791,9 @@ int MqttsClient::sendRecvMsg(){
     }else{
         if (_clientStatus.isPINGREQRequired()){
             /*-------- Send PINGREQ -----------*/
-            pingReq(_clientId);
+        	if(getMsgRequestType() != MQTTS_TYPE_PINGREQ){
+        		pingReq(_clientId);
+        	}
             unicast(MQTTS_TIME_RETRY);
         }
         _zbee->readPacket();  //  Receive MQTT-S Message
@@ -840,9 +840,9 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
 
         _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
 
-        D_MQTTW(" Send via XBee");
-        D_MQTTLN();
-        D_MQTTF("  Msg = %s\r\n",_sendQ->getMessage(0)->getMsgTypeName());
+        D_MQTTW(" Send via XBee  Msg = ");
+        D_MQTTLN(_sendQ->getMessage(0)->getMsgTypeName());
+        D_MQTTF("%s\r\n", _sendQ->getMessage(0)->getMsgTypeName());
 
         _sendQ->getMessage(0)->setDup();
         _respTimer.start(packetReadTimeout * 1000);

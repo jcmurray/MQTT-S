@@ -2,6 +2,9 @@ MQTT-S
 ======
   MQTT-S Client over XBee  (running on linux and Arduino)  
   
+  Linux Client PUBLISH  ON and OFF message with topic dev/indicator.  
+  Arduino Client SUBSCRIBE the topic dev/indicator and receives 'ON' and 'OFF' data  
+  to trun on and off the indicator of Arduino.
   
 
 Supported functions
@@ -65,13 +68,13 @@ Usage
     
     $ TomyClient /dev/ttyUSB1
   
-  A client will connect to the Gateway and publish the message.
+  A client will connect to the Gateway and publish the message,  
+  dev/indicator  on or dev/indicator off.
   
 ####3) Arduino client  
   Save the binary code into Arduino.  
-  Connect a serial terminal's Tx and Rx line to Pin 8, 9.  
-  Start Gateway.
-  Then press the reset button.
+  Then press the reset button. 
+  SUBSCRIBE dev/indicator to ON and OFF the indicator. 
   
   
 XBee configurations

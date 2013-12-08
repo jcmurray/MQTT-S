@@ -27,25 +27,12 @@
  *
  */
 
-
-//#define ZBEE_DEBUG
-//#define MQTT_DEBUG
-
 #include <MQTTS_Arduino_defs.h>
-#include <ZBeeStack.h>
-#include <MQTTS.h>
 #include <MqttsClientAppFw4Arduino.h>
-#include <MqttsClient.h>
 
-using namespace tomyClient;
 
-/*--------------------------------
- *  Console for debug
- ---------------------------------*/
-#if defined( XBEE_DEBUG) || defined(MQTT_DEBUG)
 #include <SoftwareSerial.h>
 SoftwareSerial debug(8, 9);
-#endif
 
 
 /* ----------  Create Application ----------*/
@@ -65,7 +52,7 @@ int  blinkIndicator(MqttsPublish* msg){
   MQString sw = MQString();
   sw.readBuf(msg->getData());
   if( sw == *on){
-  	app.indicatorOn();
+    app.indicatorOn();
   }else if( sw == *off){
     app.indicatorOff();
   }
@@ -96,21 +83,16 @@ void intFunc(){
 }
 
 void setup(){
-#if defined( XBEE_DEBUG) || defined(MQTT_DEBUG)
   debug.begin(19200);
-#endif
+
 
 /* -- Register Callback for INT0 --*/
   
   app.registerInt0Callback(intFunc);
-  
-  
 
 /*-- Register Callbacks for WDT (Sec、callback)  --*/
   
   app.registerWdtCallback(4,wdtFunc0);
-
-
 
   app.begin(38400);         // Set XBee Serial baudrate
   app.init("Node-02");      // Initialize application
@@ -126,12 +108,10 @@ void loop(){
 
   app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
   app.subscribe(tp1, blinkIndicator); 
-  app.registerTopic(tp2);
   
-
   app.startWdt();          // Start Watch dog timer interuption
+  
   while(true){
-  	app.recvMsg(5000);
+    app.recvMsg(5000);
   }
 }
-

@@ -290,9 +290,7 @@ void MqttsClientApplication::recvMsg(uint16_t msec){
 	tm.start(msec);
 	while(!tm.isTimeUp()){
 		_mqtts.sendRecvMsg();
-		if(_mqtts.getMsgRequestCount() == 0){
-			checkInterupt();
-		}
+		checkInterupt();
 	}
 }
 
@@ -382,6 +380,5 @@ void WdTimer::refleshRegisterTable(){
     }
 }
 
-#else
 
 #endif  /* ARDUINO */
