@@ -85,7 +85,7 @@ int main(int argc, char **argv){
 			mqtts.publish(topic1,(i % 2 ? on : off));
 			mqtts.recvMsg(10000);
 		}
-		mqtts.setClean(false);
-		mqtts.disconnect();
+		//mqtts.setClean(false);
+		//mqtts.disconnect();
    }
 }

@@ -726,6 +726,7 @@ int MqttsClient::exec(){
 		if (rc == MQTTS_ERR_RETRY_OVER &&
 			  getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
 			_clientStatus.recvDISCONNECT();
+			break;
 		}
 		if (rc == MQTTS_ERR_RETRY_OVER &&
 			(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC ||
@@ -741,6 +742,11 @@ int MqttsClient::exec(){
 			}else{
 				setMsgRequestStatus(MQTTS_MSG_REQUEST);
 			}
+		}
+		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_REGISTER){
+			_clientStatus.recvDISCONNECT();
+			clearMsgRequest();
+			break;
 		}
 	}
     D_MQTTW("---- returned from run()  rc = ");

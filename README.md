@@ -4,8 +4,8 @@ MQTT-S
   
   Linux Client PUBLISH  ON and OFF message with topic dev/indicator.  
   Arduino Client SUBSCRIBE the topic dev/indicator and receives 'ON' and 'OFF' data  
-  to trun on and off the indicator of Arduino.
-  
+  to trun on and off the indicator of Arduino.  
+  ![outlook](https://github.com/TomoakiYAMAGUCHI/MQTT-S-Gateway/blob/master/TomyGateway/documents/MQTT-S_outlook.png?raw=true)
 
 Supported functions
 -------------------
@@ -155,7 +155,7 @@ Client application sample which is used for debug.
   Flags for debug are follows:
   
     #define MQTTS_DEBUG     // show MQTT-S events.     
-    #define ZBEE_DEBUG // show serial I/O transactions. 
+    #define XBEE_DEBUG // show serial I/O transactions. 
   
 
 

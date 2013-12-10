@@ -227,7 +227,7 @@ bool SerialPort::send(unsigned char b){
   if(_serialDev->write(b) != 1){
       return false;
   }else{
-	  D_ZBSTACK(" s:0x");
+	  D_ZBSTACK(" 0x");
 	  D_ZBSTACK(b,HEX);
       return true;
   }
@@ -236,7 +236,7 @@ bool SerialPort::send(unsigned char b){
 bool SerialPort::recv(unsigned char* buf){
   if ( _serialDev->available() > 0 ){
     buf[0] = _serialDev->read();
-    D_ZBSTACK(" r:0x");
+    D_ZBSTACK(" 0x");
     D_ZBSTACK(*buf,HEX);
     return true;
   }else{
@@ -265,14 +265,14 @@ void SerialPort::begin(long baudrate){
 
 bool SerialPort::send(unsigned char b){
   _serialDev->putc(b);
-        D_ZBSTACKF( " S:0x%x", b);
+        D_ZBSTACKF( " 0x%x", b);
       return true;
 }
 
 bool SerialPort::recv(unsigned char* buf){
   if ( _serialDev->readable() > 0 ){
     buf[0] = _serialDev->getc();
-    D_ZBSTACKF( " R:0x%x",*buf );
+    D_ZBSTACKF( " 0x%x",*buf );
     return true;
   }else{
     return false;
@@ -351,7 +351,7 @@ bool SerialPort::send(unsigned char b){
   if (write(_fd, &b,1) != 1){
       return false;
   }else{
-	  D_ZBSTACKF( " S:0x%x", b);
+	  D_ZBSTACKF( " 0x%x", b);
       return true;
   }
 }
@@ -360,7 +360,7 @@ bool SerialPort::recv(unsigned char* buf){
   if(read(_fd, buf, 1) == 0){
       return false;
   }else{
-	  D_ZBSTACKF( " R:0x%x",*buf );
+	  D_ZBSTACKF( " 0x%x",*buf );
       return true;
   }
 }
@@ -708,12 +708,12 @@ bool ZBeeStack::readApiFrame(uint16_t timeoutMillsec){
 
     _tm.start((uint32_t)timeoutMillsec);
 
-    while(!_tm.isTimeUp()){
+    while(!_tm.isTimeUp() && _pos == 0){
 
         readApiFrame();
 
         if(_response.isAvailable()){
-        	D_ZBSTACKW("<== CheckSum OK\r\n");
+        	D_ZBSTACKW("\r\n<=== CheckSum OK\r\n\n");
             if( (_response.getOption() & 0x02 ) == 0x02 ){
             	return true;
             }else if(_gwAddress16 &&
@@ -725,9 +725,9 @@ bool ZBeeStack::readApiFrame(uint16_t timeoutMillsec){
                 return true;
             }
         }else if(_response.isError()){
-        	D_ZBSTACK("  <== Packet Error Code = ");
-        	D_ZBSTACK(_response.getErrorCode(), DEC);
-        	D_ZBSTACKF("  <== Packet Error Code = %d\r\n",_response.getErrorCode() );
+        	D_ZBSTACKW("\r\n<=== Packet Error Code = ");
+        	D_ZBSTACKLN(_response.getErrorCode(), DEC);
+        	D_ZBSTACKF("%d\r\n",_response.getErrorCode() );
             return false;
         }
     }
@@ -741,121 +741,124 @@ void ZBeeStack::readApiFrame(){
 	}
 
 	while(read(&_byteData )){
-		// Check Start Byte
-		if( _pos > 0 && _byteData == START_BYTE){
-		  _response.setErrorCode(UNEXPECTED_START_BYTE);
-		  return;
-		}
-		// Check ESC
-		if(_pos > 0 && _byteData == ESCAPE){
-		  if(read(&_byteData )){
-			  _byteData = 0x20^_byteData;  // decode
-		  }else{
-			  _escape = true;
-			  continue;
-		  }
-		}
-
-		if(_escape){
-		  _byteData = 0x20 ^ _byteData;
-		  _escape = false;
-		}
-
-		if(_pos >= API_ID_POS){
-		  _checksumTotal+= _byteData;
-		}
-
-		switch(_pos){
-		case 0:
-			break;
-
-		case 1:
-			_response.setMsbLength(_byteData);
-		  break;
-
-		case 2:
-			_response.setLsbLength(_byteData);
-			D_ZBSTACK(" ===> Start: length=");
-			D_ZBSTACK((_response.getPacketLength()),DEC);
-			D_ZBSTACKF( " ===> Start: length=%d", _response.getPacketLength() );
-			break;
-		case 3:
-		    _response.setApiId(_byteData);   // API
-		    break;
-
-		case 4:
-			_addr32 = (uint32_t(_byteData) << 24);
-			break;
-		case 5:
-			_addr32 += (uint32_t(_byteData) << 16);
-			break;
-
-		case 6:
-			_addr32 += (uint32_t(_byteData) << 8);
-			break;
-
-		case 7:
-			_addr32 += _byteData;
-			_response.getRemoteAddress64().setMsb(_addr32);
-			break;
-
-		case 8:
-			_addr32 = (uint32_t(_byteData) << 24);
-			break;
-
-		case 9:
-			_addr32 += (uint32_t(_byteData) << 16);
-			break;
-
-		case 10:
-			_addr32 += (uint32_t(_byteData) << 8);
-			break;
-
-		case 11:
-			_addr32 += _byteData;
-			_response.getRemoteAddress64().setLsb(_addr32);
-			break;
-
-		case 12:
-			_addr16 = (uint16_t(_byteData) << 8);
-			break;
-
-		case 13:
-			_addr16 += _byteData;
-			_response.setRemoteAddress16(_addr16);
-			break;
-
-		case 14:
-			_response.setOption(_byteData);
-			D_ZBSTACKW( "\r\n Payload ==> ");
-			break;
-
-		default:
-			if(_pos > MAX_PAYLOAD_SIZE){
-			  _response.setErrorCode(PACKET_EXCEEDS_BYTE_ARRAY_LENGTH);
-			  return;
-			}else if(_pos == (_response.getPacketLength() + 3)){  // 3 = 2(packet len) + 1(checksum)
-			  if((_checksumTotal & 0xff) == 0xff){
-				  _response.setChecksum(_byteData);
-				  _response.setAvailable(true);
-				  _response.setErrorCode(NO_ERROR);
-			  }else{
-				  _response.setErrorCode(CHECKSUM_FAILURE);
-			  }
-			  _response.setPayloadLength(_pos - 4 - ZB_RSP_DATA_OFFSET);    // 4 = 2(packet len) + 1(Api) + 1(checksum)
-			  _pos = 0;
-			  _checksumTotal = 0;
-			  return;
-			}else{
-			  _response.getPayload()[_pos - 4 - ZB_RSP_DATA_OFFSET] = _byteData;
+		if(_pos == 0){
+			if( _byteData == START_BYTE){
+				_pos++;
 			}
-			break;
+		}else{
+			// Check ESC
+			if(_byteData == ESCAPE){
+			  if(read(&_byteData )){
+				  _byteData = 0x20 ^ _byteData;  // decode
+			  }else{
+				  _escape = true;
+				  continue;
+			  }
+			}
+
+			if(_escape){
+				_byteData = 0x20 ^ _byteData;
+				_escape = false;
+			}
+
+			if(_pos >= API_ID_POS){
+				_checksumTotal+= _byteData;
+			}
+
+			if(_byteData == START_BYTE){
+				_response.setErrorCode(UNEXPECTED_START_BYTE);
+				return;
+			}
+
+			switch(_pos){
+			case 1:
+				_response.setMsbLength(_byteData);
+			  break;
+
+			case 2:
+				_response.setLsbLength(_byteData);
+				D_ZBSTACKW("\r\n===> Recv start: ");
+				break;
+			case 3:
+				_response.setApiId(_byteData);   // API
+				break;
+
+			case 4:
+				_addr32 = (uint32_t(_byteData) << 24);
+				break;
+			case 5:
+				_addr32 += (uint32_t(_byteData) << 16);
+				break;
+
+			case 6:
+				_addr32 += (uint32_t(_byteData) << 8);
+				break;
+
+			case 7:
+				_addr32 += _byteData;
+				_response.getRemoteAddress64().setMsb(_addr32);
+				break;
+
+			case 8:
+				_addr32 = (uint32_t(_byteData) << 24);
+				break;
+
+			case 9:
+				_addr32 += (uint32_t(_byteData) << 16);
+				break;
+
+			case 10:
+				_addr32 += (uint32_t(_byteData) << 8);
+				break;
+
+			case 11:
+				_addr32 += _byteData;
+				_response.getRemoteAddress64().setLsb(_addr32);
+				break;
+
+			case 12:
+				_addr16 = (uint16_t(_byteData) << 8);
+				break;
+
+			case 13:
+				_addr16 += _byteData;
+				_response.setRemoteAddress16(_addr16);
+				break;
+
+			case 14:
+				_response.setOption(_byteData);
+				D_ZBSTACKW( "\r\n     Payload: ");
+				break;
+
+			default:
+				if(_pos > MAX_PAYLOAD_SIZE){
+				  _response.setErrorCode(PACKET_EXCEEDS_BYTE_ARRAY_LENGTH);
+				  return;
+				}else if(_pos == (_response.getPacketLength() + 3)){  // 3 = 2(packet len) + 1(checksum)
+				  if((_checksumTotal & 0xff) == 0xff){
+					  _response.setChecksum(_byteData);
+					  _response.setAvailable(true);
+					  _response.setErrorCode(NO_ERROR);
+				  }else{
+					  _response.setErrorCode(CHECKSUM_FAILURE);
+				  }
+				  _response.setPayloadLength(_pos - 4 - ZB_RSP_DATA_OFFSET);    // 4 = 2(packet len) + 1(Api) + 1(checksum)
+				  _pos = 0;
+				  _checksumTotal = 0;
+				  return;
+				}else{
+				  _response.getPayload()[_pos - 4 - ZB_RSP_DATA_OFFSET] = _byteData;
+				}
+				break;
+			}
+			_pos++;
 		}
-	    _pos++;
 	}
 }
 
 void ZBeeStack::sendZBRequest(ZBRequest& request){
+	D_ZBSTACKW("\r\n===> Send start: ");
+	
 	sendByte(START_BYTE, false);           // Start byte
 
 	uint8_t msbLen = ((request.getFrameDataLength() + 1) >> 8) & 0xff; // 1  for Checksum
@@ -880,7 +883,7 @@ void ZBeeStack::sendZBRequest(ZBRequest& request){
 	sendByte(request.getOption(), true);
 	checksum += request.getOption();
 
-	D_ZBSTACKW( "\r\n Payload ==> ");
+	D_ZBSTACKW("\r\n     Payload:    ");
 
 	for( int i = 0; i < request.getPayloadLength(); i++ ){
 	  	sendByte(request.getPayload()[i], true);     // Payload
@@ -891,7 +894,7 @@ void ZBeeStack::sendZBRequest(ZBRequest& request){
 
 	flush();  // clear receive buffer
 
-	D_ZBSTACKW("\r\n" );
+	D_ZBSTACKW("\r\n<=== Send completed\r\n\n" );
 }
 
 void ZBeeStack::sendByte(uint8_t b, bool escape){
