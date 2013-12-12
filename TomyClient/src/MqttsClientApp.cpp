@@ -59,8 +59,9 @@ int main(int argc, char **argv){
 
     MqttsClient mqtts = MqttsClient();
 
-    mqtts.begin(argv[1], B38400);
-    mqtts.init("Node-03");
+    mqtts.init(argv[1]);
+    mqtts.begin(argv[2], B38400);
+
     mqtts.setQos(1);
     mqtts.setClean(true);
     mqtts.setWillTopic(willtopic);

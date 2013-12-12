@@ -52,6 +52,9 @@ typedef unsigned short uint16_t;
 typedef unsigned long  uint32_t;
 #endif /* MBED */
 
+#define ZB_RTS_ON()
+#define ZB_RTS_OFF()
+
 #endif /* ARDUINO */
 
 #endif   /* MQTTS_DEFINES_H_ */

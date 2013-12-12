@@ -5,8 +5,8 @@
 /*=================================
  *    Debug Condition
  ==================================*/
-//#define XBEE_DEBUG
-//#define MQTT_DEBUG
+#define XBEE_DEBUG
+#define MQTT_DEBUG
 
 /*=================================
  *    Print Defs for DEBUG
@@ -35,6 +35,8 @@
 #define D_MQTTF(...)
 #endif
 
+#define ZB_RTS_ON()  digitalWrite(ZB_RTSPIN, LOW)
+#define ZB_RTS_OFF() digitalWrite(ZB_RTSPIN, HIGH);
 
 #endif /* ARDUINO */
 #endif /* MQTTS_ARDUINO_DEFS_H_*/

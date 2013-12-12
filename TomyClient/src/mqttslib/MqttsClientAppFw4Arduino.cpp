@@ -289,7 +289,8 @@ void MqttsClientApplication::recvMsg(uint16_t msec){
 	XTimer tm = XTimer();
 	tm.start(msec);
 	while(!tm.isTimeUp()){
-		_mqtts.sendRecvMsg();
+		//_mqtts.sendRecvMsg();
+		_mqtts.exec();
 		checkInterupt();
 	}
 }

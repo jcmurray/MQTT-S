@@ -62,14 +62,15 @@ Usage
 
 ####1) Start Gateway  (see  TomoakiYAMAGUCHI/MQTT-S-Gateway)  
     
-    $ TomyGateway /dev/ttyUSB0  [Broker's IP Address]  [PortNo]   
+    $ TomyGateway 1 /dev/ttyUSB0  [Broker's IP Address]  [PortNo]   
   
 ####2) Start Client   (argument is a device which XBee dongle connected.)  
     
-    $ TomyClient /dev/ttyUSB1
+    $ TomyClient ClientID /dev/ttyUSB1  
   
+  ClientID is string.  
   A client will connect to the Gateway and publish the message,  
-  dev/indicator  on or dev/indicator off.
+  dev/indicator  on or dev/indicator off.  
   
 ####3) Arduino client  
   Save the binary code into Arduino.  

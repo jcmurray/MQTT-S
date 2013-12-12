@@ -43,15 +43,21 @@
     #include "MQTTS_Defines.h"
 #endif
 
-#if defined(ARDUINO) && ARDUINO >= 100
-    #include "Arduino.h"
-    #include <inttypes.h>
-#else
-    #if defined(ARDUINO) && ARDUINO < 100
-        #include "WProgram.h"
-        #include <inttypes.h>
-    #endif
+#if defined(ARDUINO)
+	#if ARDUINO >= 100
+		#include "Arduino.h"
+		#include <inttypes.h>
+	#else
+		#if ARDUINO < 100
+			#include "WProgram.h"
+			#include <inttypes.h>
+		#endif
+	#endif
+
+	#define ZB_RTSPIN  5
+
 #endif /* ARDUINO */
+
 
 #ifdef MBED
     #include "mbed.h"
@@ -131,8 +137,10 @@ enum NodeStatus {
  */
 #ifdef ARDUINO
 #define PACKET_TIMEOUT_RESP   500
+#define PACKET_TIMEOUT_CHECK  100
 #else
 #define PACKET_TIMEOUT_RESP   200
+#define PACKET_TIMEOUT_CHECK   50
 #endif
 
 
@@ -383,6 +391,7 @@ public:
 private:
 	void sendZBRequest(ZBRequest& request);
     int  packetHandle();
+    void execCallback();
     void readApiFrame(void);
     bool readApiFrame(uint16_t timeoutMillsec);
     void flush();

@@ -709,7 +709,6 @@ int MqttsClient::requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr){
 /*-------------  send Message once -----------------*/
 int MqttsClient::exec(){
     int rc;
-    int cnt = 0;
 
     while(true){
         rc = sendRecvMsg();
@@ -723,35 +722,37 @@ int MqttsClient::exec(){
 		if(rc == MQTTS_ERR_INVALID_TOPICID){
 			break;
 		}
-		if (rc == MQTTS_ERR_RETRY_OVER &&
-			  getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
+		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
 			_clientStatus.recvDISCONNECT();
 			break;
-		}
-		if (rc == MQTTS_ERR_RETRY_OVER &&
-			(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC ||
-			getMsgRequestType() == MQTTS_TYPE_WILLMSG) ){
-			clearMsgRequest();
-			_clientStatus.recvDISCONNECT();
-		}
-		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_CONNECT){
-			if(cnt++ > 5){
-				cnt = 0;
-				_clientStatus.init();
-				clearMsgRequest();
-			}else{
-				setMsgRequestStatus(MQTTS_MSG_REQUEST);
-			}
 		}
 		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_REGISTER){
 			_clientStatus.recvDISCONNECT();
 			clearMsgRequest();
 			break;
 		}
+		if (rc == MQTTS_ERR_RETRY_OVER &&
+			(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC || getMsgRequestType() == MQTTS_TYPE_WILLMSG) ){
+			clearMsgRequest();
+			_clientStatus.recvDISCONNECT();
+			break;
+		}
+		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_CONNECT){
+			clearMsgRequest();
+			_clientStatus.init();
+			break;
+		}
+		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
+			clearMsgRequest();
+			_clientStatus.init();
+			break;
+		}
 	}
+
     D_MQTTW("---- returned from run()  rc = ");
     D_MQTTLN(rc, DEC);
     D_MQTTF("%d\r\n", rc);
+
     return rc;
 }
 

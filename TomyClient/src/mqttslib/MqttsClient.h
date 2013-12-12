@@ -178,10 +178,11 @@ public:
     void publishHdl(MqttsPublish* msg);
     void recvMsg(uint16_t msec);
     int  sendRecvMsg();
+    int  exec();
     uint8_t getMsgRequestCount();
 
 private:
-    int  exec();
+
     void clearMsgRequest();
     int  requestSendMsg(MqttsMessage* msg);
     int  requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
