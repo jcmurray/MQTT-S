@@ -22,17 +22,19 @@
  * THE SOFTWARE.
  *
  *  Created on: 2013/11/30
+      Modified: 2013/12/12
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.1.1
+ *     Version: 1.0.0
  *
  */
 
 #include <MQTTS_Arduino_defs.h>
 #include <MqttsClientAppFw4Arduino.h>
 
-
-#include <SoftwareSerial.h>
-SoftwareSerial debug(8, 9);
+#if defined(MQTT_DEBUG) || defined(XBEE_DEBUG)
+    #include <SoftwareSerial.h>
+    SoftwareSerial debug(8, 9);
+#endif
 
 
 /* ----------  Create Application ----------*/
@@ -83,8 +85,9 @@ void intFunc(){
 }
 
 void setup(){
+#if defined(MQTT_DEBUG) || defined(XBEE_DEBUG)
   debug.begin(19200);
-
+#endif
 
 /* -- Register Callback for INT0 --*/
   
@@ -92,26 +95,22 @@ void setup(){
 
 /*-- Register Callbacks for WDT (Sec、callback)  --*/
   
-  app.registerWdtCallback(4,wdtFunc0);
+  app.registerWdtCallback(10,wdtFunc0);
 
-  app.begin(38400);         // Set XBee Serial baudrate
+  app.begin(9600);         // Set XBee Serial baudrate
   app.init("Node-02");      // Initialize application
   app.setQos(1);            // Set QOS level 1
 
-  //app.setWillTopic(&willtopic);     // Set WillTopic
-  //app.setWillMessage(&willmsg);     // Set WillMessage
   app.setKeepAlive(300);            // Set PINGREQ interval
   app.setSleepMode(MQ_MODE_NOSLEEP);
-}
-
-void loop(){    
-
+  
+  app.blinkIndicator(1000);  
   app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
   app.subscribe(tp1, blinkIndicator); 
   
-  app.startWdt();          // Start Watch dog timer interuption
-  
-  while(true){
-    app.recvMsg(5000);
-  }
+  app.startWdt();          // Start Watch dog timer interruption
+}
+
+void loop(){  
+    app.exec();
 }

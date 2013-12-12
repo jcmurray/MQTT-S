@@ -27,7 +27,7 @@
  *  Created on: 2013/06/28
  *    Modified: 2013/11/30
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.1.0
+ *     Version: 1.0.0
  *
  */
  
@@ -93,6 +93,12 @@ void MQwatchdogEnable(){  // Turn on WDT
 ---------------------------------*/
 void IntHandleDummy(){
 }
+
+/*--------------------------------
+        reset Arduino
+---------------------------------*/
+void (*resetArduino)(void) = 0;
+
 
 /*========================================
 		Class MqttsClientApplication
@@ -285,14 +291,9 @@ void MqttsClientApplication::stopWdt(){
     _wdTimer.stop();
 }
 
-void MqttsClientApplication::recvMsg(uint16_t msec){
-	XTimer tm = XTimer();
-	tm.start(msec);
-	while(!tm.isTimeUp()){
-		//_mqtts.sendRecvMsg();
-		_mqtts.exec();
-		checkInterupt();
-	}
+void MqttsClientApplication::exec(){
+	_mqtts.exec();
+	checkInterupt();
 }
 
 void MqttsClientApplication::setUnixTime(MqttsPublish* msg){
@@ -307,6 +308,10 @@ long MqttsClientApplication::getUnixTime(){
     }else{
         return _unixTime + long(tm - _epochTime) / 1000;
     }
+}
+
+void MqttsClientApplication::reboot(){
+	resetArduino();
 }
 
 /*======================================

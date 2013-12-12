@@ -25,7 +25,7 @@
  *
  *  Created on: 2013/11/30
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.1.0
+ *     Version: 1.0.0
  *
  */
 
@@ -79,12 +79,16 @@ int main(int argc, char **argv){
     MQString* on = new MQString("on");
     MQString* off = new MQString("off");
 
+    XTimer tm = XTimer();
 
     while(true){
 
 		for(int i = 0; i < 10; i++){
 			mqtts.publish(topic1,(i % 2 ? on : off));
-			mqtts.recvMsg(10000);
+			tm.start(10000);
+			while(!tm.isTimeUp()){
+				mqtts.exec();
+			}
 		}
 		//mqtts.setClean(false);
 		//mqtts.disconnect();

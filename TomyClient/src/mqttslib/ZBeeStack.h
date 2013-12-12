@@ -30,9 +30,9 @@
  *
  * 
  *  Created on: 2013/06/17
- *    Modified: 2013/11/30
+ *    Modified: 2013/12/12
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.1.0
+ *     Version: 1.0.0
  *
  */
 
@@ -111,13 +111,8 @@ namespace tomyClient {
 #define PACKET_ERROR_UNKOWN    -2
 #define PACKET_ERROR_NODATA    -3
 
-enum RespWaitStatus {
-	NoResp = 0,
-	RxResp
-};
-
 enum SendReqType{
-	NoReq= 0,
+	NoReq = 0,
 	UcastReq,
 	BcastReq
 };
@@ -136,11 +131,9 @@ enum NodeStatus {
  *   Packet Read Constants
  */
 #ifdef ARDUINO
-#define PACKET_TIMEOUT_RESP   500
-#define PACKET_TIMEOUT_CHECK  100
+#define PACKET_TIMEOUT_CHECK   500
 #else
-#define PACKET_TIMEOUT_RESP   200
-#define PACKET_TIMEOUT_CHECK   50
+#define PACKET_TIMEOUT_CHECK   200
 #endif
 
 
@@ -257,7 +250,7 @@ public:
 	bool send(unsigned char b);
 	bool recv(unsigned char* b);
 	void flush();
-
+	bool checkRecvBuf();
 private:
 	Stream* _serialDev;
 };
@@ -274,7 +267,7 @@ public:
 	bool send(unsigned char b);
 	bool recv(unsigned char* b);
 	void flush();
-
+	bool checkRecvBuf();
 private:
         Serial* _serialDev;
 };
@@ -298,6 +291,7 @@ public:
 
 	bool send(unsigned char b);
 	bool recv(unsigned char* b);
+	bool checkRecvBuf();
 void flush();
 
 private:
@@ -370,7 +364,7 @@ public:
 	ZBeeStack();
 	~ZBeeStack();
 
-	int  send(uint8_t* xmitData, uint8_t dataLen, uint8_t option, SendReqType type);
+	void send(uint8_t* xmitData, uint8_t dataLen, uint8_t option, SendReqType type);
 	int  readPacket();
 	int  readResp();
 
@@ -389,7 +383,7 @@ public:
 	bool init(const char* nodeId);
 
 private:
-	void sendZBRequest(ZBRequest& request);
+	void sendZBRequest(ZBRequest& request, SendReqType type);
     int  packetHandle();
     void execCallback();
     void readApiFrame(void);
@@ -399,7 +393,7 @@ private:
     bool read(uint8_t* buff);
     bool write(uint8_t val);
     void sendByte(uint8_t, bool escape);
-    uint8_t getAddrByte(uint8_t pos);
+    uint8_t getAddrByte(uint8_t pos, SendReqType type);
 
 	ZBRequest   _txRequest;
 	ZBResponse  _rxResp;
@@ -407,10 +401,8 @@ private:
 	int         _returnCode;
 
 	uint8_t _rxPayloadBuf[MAX_PAYLOAD_SIZE];
-	uint8_t _respWaitStat;  // 0:no wait  1:TxResp
 
 	NodeStatus _nodeStatus;
-	SendReqType _sendReqStat;
 
 	ZBResponse _response;    //  Received data
 

@@ -28,7 +28,7 @@
  *  Created on: 2013/06/28
  *    Modofoed: 2013/11/30
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.1.0
+ *     Version: 1.0.0
  *
  */
 
@@ -128,9 +128,10 @@ public:
 
 	void startWdt();
 	void stopWdt();
-	void recvMsg(uint16_t msec);
+	void exec();
 	void setUnixTime(MqttsPublish* msg);
 	long getUnixTime();
+	void reboot();
 
 private:
 	void checkInterupt();

@@ -83,7 +83,7 @@ XBee configurations
   Serial interfacing  of Clients and gateway.  
   Coordinator is default setting.
   
-    [BD] 0-7   
+    [BD] 0-7   Arduino Clients : 3 (9600bps)  Linux Clients : 5 (38400bps)
     [D7] 1  
     [D6] 0 or 1  
     [AP] 2

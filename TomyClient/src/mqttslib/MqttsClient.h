@@ -27,7 +27,7 @@
  *  Created on: 2013/06/19
    *  Modefied: 2013/11/30
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.1.0
+ *     Version: 1.0.0
  *
  */
 
@@ -177,12 +177,11 @@ public:
     void recieveMessageHandler(ZBResponse* msg, int* returnCode);
     void publishHdl(MqttsPublish* msg);
     void recvMsg(uint16_t msec);
-    int  sendRecvMsg();
     int  exec();
     uint8_t getMsgRequestCount();
 
 private:
-
+    int  sendRecvMsg();
     void clearMsgRequest();
     int  requestSendMsg(MqttsMessage* msg);
     int  requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
@@ -224,6 +223,7 @@ private:
     MQString*         _willMessage;
     uint16_t         _msgId;
     ClientStatus     _clientStatus;
+    bool             _sendFlg;
 };
 
 

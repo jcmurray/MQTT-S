@@ -28,7 +28,7 @@
  *  Created on: 2013/06/23
  *    Modified: 2013/11/30
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.1.0
+ *     Version: 1.0.0
  *
  */
 #ifndef ARDUINO
@@ -97,6 +97,7 @@ MqttsClient::MqttsClient(){
     _clientStatus.setKeepAlive(MQTTS_DEFAULT_KEEPALIVE);
     _msgId = 0;
     _topics.allocate(MQTTS_MAX_TOPICS);
+    _sendFlg = false;
     theMqtts = this;
 }
 
@@ -673,16 +674,6 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
     }
 }
 
-/*=============================
- *    Receive Message
- ==============================*/
-void MqttsClient::recvMsg(uint16_t msec){
-	XTimer tm = XTimer();
-	tm.start(msec);
-	while(!tm.isTimeUp()){
-		sendRecvMsg();
-	}
-}
 
 /*========================================================
     Send a MQTT-S Message (add the send request)
@@ -709,6 +700,12 @@ int MqttsClient::requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr){
 /*-------------  send Message once -----------------*/
 int MqttsClient::exec(){
     int rc;
+
+    if(_sendFlg){
+    	return 0;
+    }else{
+    	_sendFlg = true;
+    }
 
     while(true){
         rc = sendRecvMsg();
@@ -748,11 +745,7 @@ int MqttsClient::exec(){
 			break;
 		}
 	}
-
-    D_MQTTW("---- returned from run()  rc = ");
-    D_MQTTLN(rc, DEC);
-    D_MQTTF("%d\r\n", rc);
-
+    _sendFlg = false;
     return rc;
 }
 
@@ -760,7 +753,7 @@ int MqttsClient::exec(){
  *   Send or Receive Message
  ==============================*/
 int MqttsClient::sendRecvMsg(){
-    int rc = 0;
+    int rc = MQTTS_ERR_NO_ERROR;
 
 
 	/*======= Establish Connection ===========*/
@@ -783,15 +776,15 @@ int MqttsClient::sendRecvMsg(){
 		if (getMsgRequestType() != MQTTS_TYPE_CONNECT){
 			connect();
 		}
-		unicast(MQTTS_TIME_RETRY);
+		rc = unicast(MQTTS_TIME_RETRY);
 	}
 
 	if (getMsgRequestStatus() == MQTTS_MSG_REQUEST || getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
         /*======  Send Message =======*/
         if (_clientStatus.isAvailableToSend()){
-			return unicast(MQTTS_TIME_RETRY);
+			rc = unicast(MQTTS_TIME_RETRY);
 		}else{
-			return MQTTS_ERR_NOT_CONNECTED;
+			rc = MQTTS_ERR_NOT_CONNECTED;
 		}
 
 	/*======= Receive Message ===========*/
@@ -801,11 +794,11 @@ int MqttsClient::sendRecvMsg(){
         	if(getMsgRequestType() != MQTTS_TYPE_PINGREQ){
         		pingReq(_clientId);
         	}
-            unicast(MQTTS_TIME_RETRY);
+            rc = unicast(MQTTS_TIME_RETRY);
         }
-        _zbee->readPacket();  //  Receive MQTT-S Message
-        return MQTTS_ERR_NO_ERROR;
     }
+	_zbee->readPacket();  //  Receive MQTT-S Message
+	return rc;
 }
 
 /*------------------------------------
@@ -817,13 +810,16 @@ int MqttsClient::broadcast(uint16_t packetReadTimeout){
         _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, BcastReq);
         _respTimer.start(packetReadTimeout * 1000);
 
+        if (_qos == 0 && getMsgRequestType() != MQTTS_TYPE_SEARCHGW){
+		   clearMsgRequest();
+		   return MQTTS_ERR_NO_ERROR;
+        }
+        setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
+
         while(!_respTimer.isTimeUp()){
-           if ((_qos == 0 && getMsgRequestType() != MQTTS_TYPE_SEARCHGW)|| getMsgRequestStatus() == MQTTS_MSG_COMPLETE){
+           if (getMsgRequestStatus() == MQTTS_MSG_COMPLETE){
         	   clearMsgRequest();
                return MQTTS_ERR_NO_ERROR;
-
-           }else if (getMsgRequestStatus() == MQTTS_MSG_REQUEST){
-               setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
            }
            _zbee->readResp();
         }
