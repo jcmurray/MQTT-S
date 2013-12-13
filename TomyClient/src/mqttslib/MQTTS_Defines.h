@@ -13,8 +13,8 @@
 /*=================================
  *      Debug Condition
  ==================================*/
-#define XBEE_DEBUG
-#define MQTT_DEBUG
+//#define XBEE_DEBUG
+//#define MQTT_DEBUG
 
 /*=================================
  *      print defs
@@ -52,8 +52,6 @@ typedef unsigned short uint16_t;
 typedef unsigned long  uint32_t;
 #endif /* MBED */
 
-#define ZB_RTS_ON()
-#define ZB_RTS_OFF()
 
 #endif /* ARDUINO */
 

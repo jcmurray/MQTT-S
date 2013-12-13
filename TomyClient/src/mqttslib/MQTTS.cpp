@@ -337,68 +337,47 @@ const char* MqttsMessage::getMsgTypeName(){
 	switch(_type){
 	case 0x00:
 		return "ADVERTIZE";
-		break;
 	case 0x01:
 		return "SEARCGW";
-		break;
 	case 0x02:
 		return "GWINFO";
-		break;
 	case 0x04:
 		return "CONNECT";
-		break;
 	case 0x05:
 		return "CONNACK";
-		break;
 	case 0x06:
 		return "WILLTOPICREQ";
-		break;
 	case 0x07:
 		return "WILLTOPIC";
-		break;
 	case 0x08:
 		return "WILLMSGREQ";
-		break;
 	case 0x09:
 		return "WILLMSG";
-		break;
 	case 0x0a:
 		return "REGISTER";
-		break;
 	case 0x0b:
 		return "REGACK";
-		break;
 	case 0x0c:
 		return "PUBLISH";
-		break;
 	case 0x0d:
 		return "PUBACK";
-		break;
 	case 0x12:
 		return "SUBSCRIBE";
-		break;
 	case 0x13:
 		return "SUBACK";
-		break;
 	case 0x14:
 		return "UNSUBSCRIBE";
-		break;
 	case 0x15:
 		return "UNSUBACK";
-		break;
 	case 0x16:
 		return "PINGREQ";
-		break;
 	case 0x17:
 		return "PINGRESP";
-		break;
 	case 0x18:
 		return "DISCONNECT";
-		break;
 	default:
-		break;
+		return "";
 	}
-	return "";
 }
 
 
