@@ -709,7 +709,6 @@ bool ZBeeStack::readApiFrame(uint16_t timeoutMillsec){
         readApiFrame();
 
         if(_response.isAvailable()){
-        	ZB_RTS_OFF();
         	D_ZBSTACKW("\r\n<=== CheckSum OK\r\n\n");
             if( (_response.getOption() & 0x02 ) == 0x02 ){ //  broadcast ?
             	return true;

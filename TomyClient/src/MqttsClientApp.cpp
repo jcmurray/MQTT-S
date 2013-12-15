@@ -37,12 +37,12 @@
   #include "mqttslib/MqttsClient.h"
 #endif
 
-#if defined(LINUX) || defined(MBED)
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <string.h>
-  #include <iostream>
-#endif
+#ifdef LINUX
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <iostream>
+
 
 MQString* willtopic = new MQString("willtopic");
 MQString* willmsg   = new MQString("willmsg");
@@ -84,7 +84,7 @@ int main(int argc, char **argv){
 
 		for(int i = 0; i < 10; i++){
 			mqtts.publish(topic1,(i % 2 ? on : off));
-			tm.start(10000);
+			tm.start(5000);
 			while(!tm.isTimeUp()){
 				mqtts.exec();
 			}
@@ -93,3 +93,5 @@ int main(int argc, char **argv){
 		//mqtts.disconnect();
    }
 }
+
+#endif /* LINUX */
