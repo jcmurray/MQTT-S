@@ -1,9 +1,9 @@
 /*
  * ZBeeStack.h
  *
+ *		Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
+ *		Copyright (c) 2009 Andrew Rapp.       All rights reserved.
  *
- *               Copyright (c) 2009 Andrew Rapp.       All rights reserved.
- *               Copyright (c) 2013 Tomoaki YAMAGUCHI  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without 
  * modification, are permitted provided that the following conditions are met:
@@ -30,9 +30,9 @@
  *
  * 
  *  Created on: 2013/06/17
- *    Modified: 2013/12/12
+ *    Modified: 2013/12/15
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  *
  */
 
@@ -44,17 +44,15 @@
 #endif
 
 #if defined(ARDUINO)
-	#if ARDUINO >= 100
-		#include "Arduino.h"
-		#include <inttypes.h>
-	#else
-		#if ARDUINO < 100
-			#include "WProgram.h"
-			#include <inttypes.h>
-		#endif
-	#endif
-
-	#define ZB_RTSPIN  5
+    #if ARDUINO >= 100
+        #include "Arduino.h"
+        #include <inttypes.h>
+    #else
+        #if ARDUINO < 100
+            #include "WProgram.h"
+            #include <inttypes.h>
+        #endif
+    #endif
 
 #endif /* ARDUINO */
 
@@ -112,31 +110,31 @@ namespace tomyClient {
 #define PACKET_ERROR_NODATA    -3
 
 enum SendReqType{
-	NoReq = 0,
-	UcastReq,
-	BcastReq
+    NoReq = 0,
+    UcastReq,
+    BcastReq
 };
 
 /*
  *   MQTTS  Client's state
  */
 enum NodeStatus {
-	NdDisconnected = 0,
-	NdActive,
-	NdAsleep,
-	NdAwaik,
-	NdLost
+    NdDisconnected = 0,
+    NdActive,
+    NdAsleep,
+    NdAwaik,
+    NdLost
 };
 /*
  *   Packet Read Constants
  */
-#ifdef ARDUINO
-#define PACKET_TIMEOUT_CHECK   500
+#if defined(ARDUINO) || defined(MBED)
+  #define PACKET_TIMEOUT_CHECK   1000
 #else
-#define PACKET_TIMEOUT_CHECK   200
+  #define PACKET_TIMEOUT_CHECK   200
 #endif
 
-
+#define RING_BUFFER_SIZE  256
 /*============================================
               XBeeAddress64
  =============================================*/
@@ -159,52 +157,52 @@ private:
 
 class ZBResponse {
 public:
-	ZBResponse();
-	uint8_t getApiId();
-	uint8_t getMsbLength();
-	uint8_t getLsbLength();
-	uint8_t getChecksum();
-	uint8_t getFrameDataLength();
-	uint16_t getPacketLength();
-	uint16_t getRemoteAddress16();
-	uint8_t  getPayload(uint8_t index);
-	uint8_t* getPayload();
-	uint8_t  getPayloadLength();
-	uint8_t  getOption();
-	XBeeAddress64& getRemoteAddress64();
+    ZBResponse();
+    uint8_t getApiId();
+    uint8_t getMsbLength();
+    uint8_t getLsbLength();
+    uint8_t getChecksum();
+    uint8_t getFrameDataLength();
+    uint16_t getPacketLength();
+    uint16_t getRemoteAddress16();
+    uint8_t  getPayload(uint8_t index);
+    uint8_t* getPayload();
+    uint8_t  getPayloadLength();
+    uint8_t  getOption();
+    XBeeAddress64& getRemoteAddress64();
 
-	void setApiId(uint8_t api);
-	void setMsbLength(uint8_t msbLength);
-	void setLsbLength(uint8_t lsbLength);
-	void setChecksum(uint8_t checksum);
-	void setPayload(uint8_t* payloadPtr);
-	void setPayloadLength(uint8_t payloadLength);
-	void setRemoteAddress64(XBeeAddress64& addr64);
-	void setRemoteAddress16(uint16_t addr16);
-	void setOption(uint8_t options);
+    void setApiId(uint8_t api);
+    void setMsbLength(uint8_t msbLength);
+    void setLsbLength(uint8_t lsbLength);
+    void setChecksum(uint8_t checksum);
+    void setPayload(uint8_t* payloadPtr);
+    void setPayloadLength(uint8_t payloadLength);
+    void setRemoteAddress64(XBeeAddress64& addr64);
+    void setRemoteAddress16(uint16_t addr16);
+    void setOption(uint8_t options);
 
-	bool isBrodcast();
-	bool isAvailable();
-	void setAvailable(bool complete);
-	bool isError();
-	uint8_t getErrorCode();
-	void setErrorCode(uint8_t errorCode);
-	void reset();
+    bool isBrodcast();
+    bool isAvailable();
+    void setAvailable(bool complete);
+    bool isError();
+    uint8_t getErrorCode();
+    void setErrorCode(uint8_t errorCode);
+    void reset();
 
 private:
-	//void copyCommon(ZBResponse &target);
+    //void copyCommon(ZBResponse &target);
 
-	uint8_t *_payloadPtr;
-	uint8_t _msbLength;
-	uint8_t _lsbLength;
-	uint8_t _apiId;
-	XBeeAddress64 _remoteAddress64;
-	uint16_t _remoteAddress16;
-	uint8_t  _options;
-	uint8_t _checksum;
-	uint8_t _payloadLength;
-	bool   _complete;
-	uint8_t _errorCode;
+    uint8_t *_payloadPtr;
+    uint8_t _msbLength;
+    uint8_t _lsbLength;
+    uint8_t _apiId;
+    XBeeAddress64 _remoteAddress64;
+    uint16_t _remoteAddress16;
+    uint8_t  _options;
+    uint8_t _checksum;
+    uint8_t _payloadLength;
+    bool   _complete;
+    uint8_t _errorCode;
 
 
 };
@@ -215,25 +213,25 @@ private:
 
 class ZBRequest {
 public:
-	ZBRequest();
+    ZBRequest();
     ~ZBRequest(){};
 //    uint8_t getFrameData(uint8_t pos);
     uint8_t getFrameDataLength();
-	uint8_t getBroadcastRadius();
-	uint8_t getOption();
-	uint8_t* getPayload();
-	uint8_t getPayloadLength();
+    uint8_t getBroadcastRadius();
+    uint8_t getOption();
+    uint8_t* getPayload();
+    uint8_t getPayloadLength();
 
-	void setBroadcastRadius(uint8_t broadcastRadius);
-	void setOption(uint8_t option);
-	void setPayload(uint8_t *payload);
-	void setPayloadLength(uint8_t payLoadLength);
+    void setBroadcastRadius(uint8_t broadcastRadius);
+    void setOption(uint8_t option);
+    void setPayload(uint8_t *payload);
+    void setPayloadLength(uint8_t payLoadLength);
 
 private:
-	uint8_t _broadcastRadius;
-	uint8_t _option;
-	uint8_t* _payloadPtr;
-	uint8_t _payloadLength;
+    uint8_t _broadcastRadius;
+    uint8_t _option;
+    uint8_t* _payloadPtr;
+    uint8_t _payloadLength;
 };
 
 
@@ -245,14 +243,14 @@ private:
 #include <Stream.h>
 class SerialPort{
 public:
-	SerialPort( );
-	void begin(long baudrate);
-	bool send(unsigned char b);
-	bool recv(unsigned char* b);
-	void flush();
-	bool checkRecvBuf();
+    SerialPort( );
+    void begin(long baudrate);
+    bool send(unsigned char b);
+    bool recv(unsigned char* b);
+    void flush();
+    bool checkRecvBuf();
 private:
-	Stream* _serialDev;
+    Stream* _serialDev;
 };
 #endif /* ARDUINO */
 
@@ -262,14 +260,18 @@ private:
  --------------------------*/
 class SerialPort{
 public:
-	SerialPort( );
-	void begin(long baudrate);
-	bool send(unsigned char b);
-	bool recv(unsigned char* b);
-	void flush();
-	bool checkRecvBuf();
+    SerialPort( );
+    void begin(long baudrate);
+    bool send(unsigned char b);
+    bool recv(unsigned char* b);
+    void flush();
+    bool checkRecvBuf();
+    void setBuff(void);
 private:
         Serial* _serialDev;
+        uint8_t _data[RING_BUFFER_SIZE];
+        int _head;
+        int _tail;
 };
 #endif /* MBED */
 
@@ -280,23 +282,23 @@ private:
 #include <termios.h>
 class SerialPort{
 public:
-	SerialPort();
-	~SerialPort();
-	int begin(const char* devName);
-	int begin(const char* devName,
-			   unsigned int boaurate);
-	int begin(const char* devName, unsigned int boaurate, bool parity);
-	int begin(const char* devName, unsigned int boaurate,
-				  bool parity, unsigned int stopbit);
+    SerialPort();
+    ~SerialPort();
+    int begin(const char* devName);
+    int begin(const char* devName,
+               unsigned int boaurate);
+    int begin(const char* devName, unsigned int boaurate, bool parity);
+    int begin(const char* devName, unsigned int boaurate,
+                  bool parity, unsigned int stopbit);
 
-	bool send(unsigned char b);
-	bool recv(unsigned char* b);
-	bool checkRecvBuf();
-void flush();
-
+    bool send(unsigned char b);
+    bool recv(unsigned char* b);
+    bool checkRecvBuf();
+    void flush();
+    void putc(uint8_t c);
 private:
-	int _fd;  // file descriptor
-	struct termios _tio;
+    int _fd;  // file descriptor
+    struct termios _tio;
 };
 #endif /* LINUX */
 
@@ -308,15 +310,15 @@ private:
  ============================================*/
 class XTimer {
 public:
-	XTimer();
-	void start(uint32_t msec = 0);
-	bool isTimeUp(uint32_t msec);
-	bool isTimeUp(void);
-	void stop();
+    XTimer();
+    void start(uint32_t msec = 0);
+    bool isTimeUp(uint32_t msec);
+    bool isTimeUp(void);
+    void stop();
 private:
-	uint32_t _startTime;
-	uint32_t _currentTime;
-	uint32_t _millis;
+    uint32_t _startTime;
+    uint32_t _currentTime;
+    uint32_t _millis;
 };
 #endif
 
@@ -361,29 +363,29 @@ private:
  ============================================*/
 class ZBeeStack {
 public:
-	ZBeeStack();
-	~ZBeeStack();
+    ZBeeStack();
+    ~ZBeeStack();
 
-	void send(uint8_t* xmitData, uint8_t dataLen, uint8_t option, SendReqType type);
-	int  readPacket();
-	int  readResp();
+    void send(uint8_t* xmitData, uint8_t dataLen, uint8_t option, SendReqType type);
+    int  readPacket();
+//    int  readResp();
 
 
-	void setSerialPort(SerialPort *serialPort);
-	void setGwAddress(XBeeAddress64& addr64, uint16_t addr16);
-	void setRxHandler(void (*callbackPtr)(ZBResponse* data, int* returnCode));
+    void setSerialPort(SerialPort *serialPort);
+    void setGwAddress(XBeeAddress64& addr64, uint16_t addr16);
+    void setRxHandler(void (*callbackPtr)(ZBResponse* data, int* returnCode));
 
-	XBeeAddress64& getRxRemoteAddress64();
-	uint16_t       getRxRemoteAddress16();
-	const char*   getNodeId();
+    XBeeAddress64& getRxRemoteAddress64();
+    uint16_t       getRxRemoteAddress16();
+    const char*   getNodeId();
 
-	void          getResponse(ZBResponse& response);
-	ZBResponse*    getRxResponse();
+    void          getResponse(ZBResponse& response);
+    ZBResponse*    getRxResponse();
 
-	bool init(const char* nodeId);
+    bool init(const char* nodeId);
 
 private:
-	void sendZBRequest(ZBRequest& request, SendReqType type);
+    void sendZBRequest(ZBRequest& request, SendReqType type);
     int  packetHandle();
     void execCallback();
     void readApiFrame(void);
@@ -395,31 +397,31 @@ private:
     void sendByte(uint8_t, bool escape);
     uint8_t getAddrByte(uint8_t pos, SendReqType type);
 
-	ZBRequest   _txRequest;
-	ZBResponse  _rxResp;
-	ZBRequest   _txRetryRequest;
-	int         _returnCode;
+    ZBRequest   _txRequest;
+    ZBResponse  _rxResp;
+    ZBRequest   _txRetryRequest;
+    int         _returnCode;
 
-	uint8_t _rxPayloadBuf[MAX_PAYLOAD_SIZE];
+    uint8_t _rxPayloadBuf[MAX_PAYLOAD_SIZE];
 
-	NodeStatus _nodeStatus;
+    NodeStatus _nodeStatus;
 
-	ZBResponse _response;    //  Received data
+    ZBResponse _response;    //  Received data
 
-	uint8_t _pos;
-	uint8_t _byteData;
-	bool   _escape;
-	uint8_t _checksumTotal;
-	uint16_t _addr16;
-	uint32_t _addr32;
-	uint8_t _responsePayload[MAX_PAYLOAD_SIZE];
-	SerialPort *_serialPort;
-	XBeeAddress64 _gwAddress64;
-	uint16_t  _gwAddress16;
+    uint8_t _pos;
+    uint8_t _byteData;
+    bool   _escape;
+    uint8_t _checksumTotal;
+    uint16_t _addr16;
+    uint32_t _addr32;
+    uint8_t _responsePayload[MAX_PAYLOAD_SIZE];
+    SerialPort *_serialPort;
+    XBeeAddress64 _gwAddress64;
+    uint16_t  _gwAddress16;
 
-	XTimer  _tm;
+    XTimer  _tm;
 
-	void (*_rxCallbackPtr)(ZBResponse* data, int* returnCode);
+    void (*_rxCallbackPtr)(ZBResponse* data, int* returnCode);
 };
 
 }

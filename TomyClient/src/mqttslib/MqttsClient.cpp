@@ -821,7 +821,7 @@ int MqttsClient::broadcast(uint16_t packetReadTimeout){
         	   clearMsgRequest();
                return MQTTS_ERR_NO_ERROR;
            }
-           _zbee->readResp();
+           _zbee->readPacket();
         }
 
         setMsgRequestStatus(MQTTS_MSG_REQUEST);
@@ -886,7 +886,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
 				setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
             }
             /*----- Read response  ----*/
-            if(_zbee->readResp() == MQTTS_ERR_INVALID_TOPICID){
+            if(_zbee->readPacket() == MQTTS_ERR_INVALID_TOPICID){
             	clearMsgRequest();
             	return MQTTS_ERR_INVALID_TOPICID;
             }

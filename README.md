@@ -1,6 +1,6 @@
 MQTT-S
 ======
-  MQTT-S Client over XBee  (running on linux and Arduino)  
+  MQTT-S Client over XBee  (running on linux, Arduino and mbed)  
   
   Linux Client PUBLISH  ON and OFF message with topic dev/indicator.  
   Arduino Client SUBSCRIBE the topic dev/indicator and receives 'ON' and 'OFF' data  
@@ -104,6 +104,9 @@ _Copy mqttslib into Aruino Librally directory._
 _Copy this file into Aruino sketch directory._
 *  MqttsClientFwApp.ino
   
+####3) mbed Client
+*  mqttslib    
+*  MbedClientApp.cpp  
 
 Module descriptions
 -------------------  
