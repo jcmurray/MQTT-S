@@ -26,9 +26,9 @@
  *
  * 
  *  Created on: 2013/06/23
- *    Modified: 2013/11/30
+ *    Modified: 2013/12/30
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.0.1
  *
  */
 #ifndef ARDUINO
@@ -285,11 +285,18 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
             mqttsMsg.setMsgId(getNextMsgId());
         }
         requestSendMsg((MqttsMessage*)&mqttsMsg);
-        return exec();
-    }else{
-    	D_MQTTW("PUBLISH unkown TopicId\r\n");
-    	return MQTTS_ERR_NO_TOPICID;
-    }
+        int rc = exec();
+
+		if( rc == MQTTS_ERR_INVALID_TOPICID){
+			registerTopic(topic);
+			rc = exec();
+		}
+		return rc;
+
+	}else{
+		registerTopic(topic);
+		return  exec();
+	}
 }
 
 /*--------- PUBLISH ------*/
@@ -499,6 +506,13 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 			}
     	}else{
     		D_MQTTW("PUBLISH received Client is not Active\r\n");
+    		/*
+    		if ((getMsgRequestType() == MQTTS_TYPE_CONNECT || getMsgRequestType() == MQTTS_TYPE_WILLMSG)){
+    			setMsgRequestStatus(MQTTS_MSG_COMPLETE);
+				_clientStatus.recvCONNACK();
+				D_MQTTW("Client is activated\r\n");
+			}
+			*/
     	}
 
 /*===========  Response  =========*/
@@ -897,7 +911,11 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
                 break;
             }
         }
-        setMsgRequestStatus(MQTTS_MSG_REQUEST);
+        if (getMsgRequestType() == MQTTS_TYPE_CONNECT) {
+        	setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
+		}else{
+			setMsgRequestStatus(MQTTS_MSG_REQUEST);
+		}
         retry++;
     }
     return MQTTS_ERR_RETRY_OVER;
