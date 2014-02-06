@@ -185,6 +185,7 @@ private:
     void clearMsgRequest();
     int  requestSendMsg(MqttsMessage* msg);
     int  requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr);
+    bool isRequestable();
     int  broadcast(uint16_t packetReadTimeout);
     int  unicast(uint16_t packetReadTimeout);
 

@@ -89,8 +89,6 @@ int main(int argc, char **argv){
 				mqtts.exec();
 			}
 		}
-		//mqtts.setClean(false);
-		//mqtts.disconnect();
    }
 }
 

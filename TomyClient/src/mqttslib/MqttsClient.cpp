@@ -275,6 +275,10 @@ int MqttsClient::registerTopic(MQString* topic){
 
 /*--------- PUBLISH ------*/
 int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
+	if (!isRequestable()){
+		D_MQTTW(" Gateway lost\r\n");
+		return MQTTS_ERR_GATEWAY_LOST;
+	}
     uint16_t topicId = _topics.getTopicId(topic);
     if (topicId){
         MqttsPublish mqttsMsg = MqttsPublish();
@@ -301,6 +305,10 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
 
 /*--------- PUBLISH ------*/
 int MqttsClient::publish(MQString* topic, MQString* data){
+	if (!isRequestable()){
+		D_MQTTW(" Gateway lost\r\n");
+		return MQTTS_ERR_GATEWAY_LOST;
+	}
     uint16_t topicId = _topics.getTopicId(topic);
     if (topicId){
         MqttsPublish mqttsMsg = MqttsPublish();
@@ -328,7 +336,11 @@ int MqttsClient::publish(MQString* topic, MQString* data){
 
 /*--------- PUBLISH ------*/
 int MqttsClient::publish(uint16_t predefinedId, const char* data, int dataLength){
-    MqttsPublish mqttsMsg = MqttsPublish();
+	if (!isRequestable()){
+		D_MQTTW(" Gateway lost\r\n");
+		return MQTTS_ERR_GATEWAY_LOST;
+	}
+	MqttsPublish mqttsMsg = MqttsPublish();
     mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_PREDEFINED);
     mqttsMsg.setTopicId(predefinedId);
     mqttsMsg.setData((uint8_t*)data, (uint8_t)dataLength);
@@ -341,6 +353,10 @@ int MqttsClient::publish(uint16_t predefinedId, const char* data, int dataLength
 
 /*--------- SUBSCRIBE ------*/
 int MqttsClient::subscribe(MQString* topic, TopicCallback callback){
+	if (!isRequestable()){
+		D_MQTTW(" Gateway lost\r\n");
+		return MQTTS_ERR_GATEWAY_LOST;
+	}
     MqttsSubscribe mqttsMsg = MqttsSubscribe();
     uint16_t topicId = _topics.getTopicId(topic);
     if (topicId){
@@ -359,7 +375,11 @@ int MqttsClient::subscribe(MQString* topic, TopicCallback callback){
 
 /*--------- SUBSCRIBE ------*/
 int MqttsClient::subscribe(uint16_t predefinedId, TopicCallback callback){
-    MqttsSubscribe mqttsMsg = MqttsSubscribe();
+	if (!isRequestable()){
+		D_MQTTW(" Gateway lost\r\n");
+		return MQTTS_ERR_GATEWAY_LOST;
+	}
+	MqttsSubscribe mqttsMsg = MqttsSubscribe();
     mqttsMsg.setTopicId(predefinedId);
     mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_PREDEFINED);
     mqttsMsg.setMsgId(getNextMsgId());
@@ -370,6 +390,10 @@ int MqttsClient::subscribe(uint16_t predefinedId, TopicCallback callback){
 
 /*--------- UNSUBSCRIBE ------*/
 int MqttsClient::unsubscribe(MQString* topic){
+	if (!isRequestable()){
+		D_MQTTW(" Gateway lost\r\n");
+		return MQTTS_ERR_GATEWAY_LOST;
+	}
     MqttsUnsubscribe mqttsMsg = MqttsUnsubscribe();
     uint16_t topicId = _topics.getTopicId(topic);
     if (topicId){
@@ -386,6 +410,10 @@ int MqttsClient::unsubscribe(MQString* topic){
 
 /*--------- UNSUBSCRIBE ------*/
 int MqttsClient::unsubscribe(uint16_t predefinedId){
+	if (!isRequestable()){
+		D_MQTTW(" Gateway lost\r\n");
+		return MQTTS_ERR_GATEWAY_LOST;
+	}
     MqttsUnsubscribe mqttsMsg = MqttsUnsubscribe();
     mqttsMsg.setTopicId(predefinedId);
     mqttsMsg.setMsgId(getNextMsgId());
@@ -506,13 +534,6 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 			}
     	}else{
     		D_MQTTW("PUBLISH received Client is not Active\r\n");
-    		/*
-    		if ((getMsgRequestType() == MQTTS_TYPE_CONNECT || getMsgRequestType() == MQTTS_TYPE_WILLMSG)){
-    			setMsgRequestStatus(MQTTS_MSG_COMPLETE);
-				_clientStatus.recvCONNACK();
-				D_MQTTW("Client is activated\r\n");
-			}
-			*/
     	}
 
 /*===========  Response  =========*/
@@ -573,7 +594,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
 /*---------  CONNACK  ----------*/
     }else if (recvMsg->getPayload(1) == MQTTS_TYPE_CONNACK){
-        D_MQTTW(" CONNACK received");
+        D_MQTTW(" CONNACK received\r\n");
         if ((getMsgRequestType() == MQTTS_TYPE_CONNECT || getMsgRequestType() == MQTTS_TYPE_WILLMSG)){
             MqttsConnack mqMsg = MqttsConnack();
             copyMsg(&mqMsg, recvMsg);
@@ -644,7 +665,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 
                 }
             }else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_CONGESTION){
-                setMsgRequestStatus(MQTTS_MSG_REQUEST);
+                setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
             }else{
                 *returnCode = MQTTS_ERR_REJECTED;       // Return Code
             }
@@ -707,6 +728,10 @@ int MqttsClient::requestPrioritySendMsg(MqttsMessage* mqttsMsgPtr){
     return MQTTS_ERR_NO_ERROR;
 }
 
+bool MqttsClient::isRequestable(){
+	return ((getMsgRequestType() != MQTTS_TYPE_SEARCHGW) && (getMsgRequestType() != MQTTS_TYPE_CONNECT));
+}
+
 /*========================================================
   Execute sending a MQTT-S Message
 ==========================================================*/
@@ -716,7 +741,7 @@ int MqttsClient::exec(){
     int rc;
 
     if(_sendFlg){
-    	return 0;
+    	return MQTTS_ERR_NO_ERROR;
     }else{
     	_sendFlg = true;
     }
@@ -734,6 +759,7 @@ int MqttsClient::exec(){
 			break;
 		}
 		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
+			clearMsgRequest();
 			_clientStatus.recvDISCONNECT();
 			break;
 		}
@@ -754,9 +780,13 @@ int MqttsClient::exec(){
 			break;
 		}
 		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-			clearMsgRequest();
+			//clearMsgRequest();
 			_clientStatus.init();
 			break;
+		}
+		if (!_clientStatus.isGatewayAlive()){
+			D_MQTTW(" Gateway is Dead.\r\n");
+			_clientStatus.init();
 		}
 	}
     _sendFlg = false;
@@ -798,7 +828,7 @@ int MqttsClient::sendRecvMsg(){
         if (_clientStatus.isAvailableToSend()){
 			rc = unicast(MQTTS_TIME_RETRY);
 		}else{
-			rc = MQTTS_ERR_NOT_CONNECTED;
+			//rc = MQTTS_ERR_NOT_CONNECTED;
 		}
 
 	/*======= Receive Message ===========*/
@@ -822,6 +852,11 @@ int MqttsClient::broadcast(uint16_t packetReadTimeout){
     int retry = 0;
     while(retry < _nRetry){
         _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, BcastReq);
+
+        D_MQTTW(" Broadcast via XBee  Msg = ");
+		D_MQTTLN(_sendQ->getMessage(0)->getMsgTypeName());
+		D_MQTTF("%s\r\n", _sendQ->getMessage(0)->getMsgTypeName());
+
         _respTimer.start(packetReadTimeout * 1000);
 
         if (_qos == 0 && getMsgRequestType() != MQTTS_TYPE_SEARCHGW){
@@ -849,7 +884,22 @@ int MqttsClient::broadcast(uint16_t packetReadTimeout){
  -------------------------------------*/
 int MqttsClient::unicast(uint16_t packetReadTimeout){
     int retry = 0;
+
     while(retry < _nRetry){
+    	if (getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
+			/* ------  Re send Time delay -------*/
+			#ifdef ARDUINO
+			  delay(MQTTS_TIME_WAIT * 1000);
+			#else
+				#ifdef MBED
+					wait_ms(MQTTS_TIME_WAIT * 1000);
+				#else
+					usleep(MQTTS_TIME_WAIT * 1000000);
+				#endif
+			#endif
+			setMsgRequestStatus(MQTTS_MSG_REQUEST);
+		}
+
     	/*------ Send Top message in SendQue -----*/
     	if (getMsgRequestStatus() != MQTTS_MSG_REQUEST){
     		return MQTTS_ERR_NO_ERROR;
@@ -857,7 +907,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
 
         _zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
 
-        D_MQTTW(" Send via XBee  Msg = ");
+        D_MQTTW(" Unicast via XBee  Msg = ");
         D_MQTTLN(_sendQ->getMessage(0)->getMsgTypeName());
         D_MQTTF("%s\r\n", _sendQ->getMessage(0)->getMsgTypeName());
 
@@ -881,24 +931,8 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
         	}else if (getMsgRequestStatus() == MQTTS_MSG_REJECTED){
             	clearMsgRequest();
                 return MQTTS_ERR_REJECTED;
-
-            }else if (getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
-
-            	/* ------  Re send Time delay -------*/
-                #ifdef ARDUINO
-                  delay(MQTTS_TIME_WAIT * 1000);
-                #else
-                    #ifdef MBED
-                        wait_ms(MQTTS_TIME_WAIT * 1000);
-                    #else
-                        usleep(MQTTS_TIME_WAIT * 1000000);
-                    #endif
-                #endif
-
-                /* ----- Re send  Top message in SendQue ---*/
-				_zbee->send(_sendQ->getMessage(0)->getMsgBuff(), _sendQ->getMessage(0)->getLength(), 0, UcastReq);
-				setMsgRequestStatus(MQTTS_MSG_WAIT_ACK);
             }
+
             /*----- Read response  ----*/
             if(_zbee->readPacket() == MQTTS_ERR_INVALID_TOPICID){
             	clearMsgRequest();
@@ -911,11 +945,8 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
                 break;
             }
         }
-        if (getMsgRequestType() == MQTTS_TYPE_CONNECT) {
-        	setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
-		}else{
-			setMsgRequestStatus(MQTTS_MSG_REQUEST);
-		}
+
+		setMsgRequestStatus(MQTTS_MSG_REQUEST);
         retry++;
     }
     return MQTTS_ERR_RETRY_OVER;
