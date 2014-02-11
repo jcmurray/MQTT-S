@@ -269,7 +269,7 @@ int MqttsClient::registerTopic(MQString* topic){
     mqttsMsg.setTopicName(topic);
     mqttsMsg.setMsgId(getNextMsgId());
     _topics.addTopic(topic);
-    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
     return exec();
 }
 

@@ -174,3 +174,4 @@ Client application sample which is used for debug.
 
 * Author:    Tomoaki YAMAGUCHI
 * Email:     tomoaki@tomy-tech.com
+* Twitter:   @ty4tw
