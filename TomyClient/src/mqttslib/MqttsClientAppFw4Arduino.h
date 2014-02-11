@@ -128,7 +128,7 @@ public:
 
 	void startWdt();
 	void stopWdt();
-	void exec();
+	int  exec();
 	void setUnixTime(MqttsPublish* msg);
 	long getUnixTime();
 	void reboot();

@@ -291,9 +291,10 @@ void MqttsClientApplication::stopWdt(){
     _wdTimer.stop();
 }
 
-void MqttsClientApplication::exec(){
-	_mqtts.exec();
+int MqttsClientApplication::exec(){
+	int rc = _mqtts.exec();
 	checkInterupt();
+	return rc;
 }
 
 void MqttsClientApplication::setUnixTime(MqttsPublish* msg){
