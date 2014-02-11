@@ -112,5 +112,7 @@ void setup(){
 }
 
 void loop(){  
-    app.exec();
+    if(app.exec() == MQTTS_ERR_REBOOT_REQUIRED){
+        app.reboot();
+    }
 }
