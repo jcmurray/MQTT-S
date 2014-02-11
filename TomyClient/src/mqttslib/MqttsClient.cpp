@@ -780,14 +780,15 @@ int MqttsClient::exec(){
 			break;
 		}
 		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-			//clearMsgRequest();
+			rc = MQTTS_ERR_REBOOT_REQUIRED;
 			_clientStatus.init();
 			break;
 		}
-		if (!_clientStatus.isGatewayAlive()){
-			D_MQTTW(" Gateway is Dead.\r\n");
-			_clientStatus.init();
-		}
+	}
+
+    if (!_clientStatus.isGatewayAlive()){
+		D_MQTTW(" Gateway is Dead.\r\n");
+		_clientStatus.init();
 	}
     _sendFlg = false;
     return rc;
