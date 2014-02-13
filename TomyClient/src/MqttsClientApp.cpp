@@ -68,12 +68,9 @@ int main(int argc, char **argv){
     mqtts.setKeepAlive(60);
 
     MQString *topic0 = new MQString("a/bcd/ef");
-    MQString *topic1 = new MQString("dev/indicator");
-
-    mqtts.registerTopic(topic0);
-
-    mqtts.unsubscribe(topic0);
-    //mqtts.subscribe(topic1,&fnTp1);
+    MQString *topic1 = new MQString("dev/indicator1");
+    MQString *topic2 = new MQString("dev/indicator2");
+    MQString *topic3 = new MQString("dev/indicator3");
 
     MQString* on = new MQString("on");
     MQString* off = new MQString("off");
@@ -83,7 +80,10 @@ int main(int argc, char **argv){
     while(true){
 
 		for(int i = 0; i < 10; i++){
+			mqtts.publish(topic0,(i % 2 ? on : off));
 			mqtts.publish(topic1,(i % 2 ? on : off));
+			mqtts.publish(topic2,(i % 2 ? on : off));
+			mqtts.publish(topic3,(i % 2 ? on : off));
 			tm.start(5000);
 			while(!tm.isTimeUp()){
 				mqtts.exec();

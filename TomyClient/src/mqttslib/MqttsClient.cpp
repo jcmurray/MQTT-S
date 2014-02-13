@@ -983,28 +983,28 @@ int SendQue::addRequest(MqttsMessage* msg){
 
 int SendQue::addPriorityRequest(MqttsMessage* msg){
     if ( _queCnt < _queSize){
-		D_MQTTW("\nAdd SendQue Top Size = ");
-		D_MQTT(_queCnt + 1, DEC);
-		D_MQTT("  Msg = 0x");
-		D_MQTTLN(msg->getType(), HEX);
-		D_MQTTF("%d  Msg = 0x%x", _queCnt + 1, msg->getType());
+	_queCnt++;
+    }
+	D_MQTTW("\nAdd SendQue Top Size = ");
+	D_MQTT(_queCnt, DEC);
+	D_MQTT("  Msg = 0x");
+	D_MQTTLN(msg->getType(), HEX);
+	D_MQTTF("%d  Msg = 0x%x", _queCnt, msg->getType());
 
-        for(int i = _queCnt; i > 0; i--){
-            _msg[i] = _msg[i - 1];
-        }
-        _msg[0] = new MqttsMessage();
-        _msg[0]->copy(msg);
-        _queCnt++;
+    for(int i = _queCnt-1; i > 0; i--){
+        _msg[i] = _msg[i - 1];
+    }
+    _msg[0] = new MqttsMessage();
+    _msg[0]->copy(msg);
+
 
         for(int i = 1; i < _queCnt; i++){
-        	D_MQTT( "  Msg = 0x");
-			D_MQTT(_msg[i]->getType(), HEX);
-			D_MQTTF("  Msg = 0x%x ", _msg[i]->getType());
+     	    D_MQTT( "  Msg = 0x");
+	    D_MQTT(_msg[i]->getType(), HEX);
+	    D_MQTTF("  Msg = 0x%x ", _msg[i]->getType());
         }
         D_MQTTW("\r\n");
-        return 0;
-    }
-    return MQTTS_ERR_CANNOT_ADD_REQUEST;
+    return 0;
 }
 
 int SendQue::deleteRequest(uint8_t index){
