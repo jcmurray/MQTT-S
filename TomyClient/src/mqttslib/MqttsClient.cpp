@@ -693,6 +693,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
         if (getMsgRequestType() == MQTTS_TYPE_CONNECT){
             clearMsgRequest();
             MqttsWillTopic mqMsg = MqttsWillTopic();
+            mqMsg.setFlags(0);
             mqMsg.setWillTopic(_willTopic);
             requestPrioritySendMsg((MqttsMessage*)&mqMsg);
         }

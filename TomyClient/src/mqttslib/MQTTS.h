@@ -172,7 +172,7 @@ public:
     MQString(const char*);
     ~MQString();
     uint8_t getCharLength();
-    uint8_t getDataLength();
+    //uint8_t getDataLength();
     int     comp(MQString* str);
     int     comp(const char* str);
     int     ncomp(MQString* str, long n);
@@ -182,7 +182,7 @@ public:
     MQString* create();
     void    writeBuf(uint8_t* buf);
     void    readBuf(uint8_t* buf);
-    uint8_t getChar(long index);
+    uint8_t getChar(uint8_t index);
     char*  getStr();
     const char* getConstStr();
     bool    isConst();
@@ -190,7 +190,7 @@ public:
     bool operator!=(MQString&);
 private:
     void    freeStr();
-    uint16_t _length;
+    //uint16_t _length;
     char*    _str;
     const char* _constStr;
 };

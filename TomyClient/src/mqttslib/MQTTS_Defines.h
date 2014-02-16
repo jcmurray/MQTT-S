@@ -13,7 +13,7 @@
 /*=================================
  *      Debug Condition
  ==================================*/
-//#define XBEE_DEBUG
+#define XBEE_DEBUG
 #define MQTT_DEBUG
 
 /*=================================

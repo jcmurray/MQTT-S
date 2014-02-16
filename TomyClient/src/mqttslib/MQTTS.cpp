@@ -77,14 +77,14 @@ extern void setUint16(uint8_t* pos, uint16_t val);
         Class MQString
   =====================================*/
 MQString::MQString(){
-    _length = 0;
+    //_length = 0;
     _constStr = NULL;
     _str = NULL;
 }
 
 MQString::MQString(const char* str){
-    _length = strlen(str);
-    if (_length){
+    //_length = strlen(str);
+    if (strlen(str)){
         _constStr = str;
     }else{
         _constStr = NULL;
@@ -99,38 +99,47 @@ MQString::~MQString(){
 }
 
 uint8_t MQString::getCharLength(){
-    return _length;
+    if(_str){
+    	return strlen(_str);
+    }
+    return strlen(_constStr);
 }
+
+/*
 uint8_t MQString::getDataLength(){
     return _length + 2;
 }
+*/
 
 int MQString::comp(MQString* str){
     if (_str){
-        return (strncmp(_str, str->getStr(), _length));
+        return (strcmp(_str, str->getStr()));
     }else if(_constStr){
-        return (strncmp(_constStr, str->getConstStr(), _length));
+        return (strcmp(_constStr, str->getConstStr()));
     }
     return 1;
 }
+
 
 int MQString::comp(const char* str){
     if(_str){
-        return (strncmp(_str, str, _length));
+        return (strcmp(_str, str));
     }else if (_constStr){
-        return (strncmp(_constStr, str, _length));
+        return (strcmp(_constStr, str));
     }
     return 1;
 }
 
+
 int MQString::ncomp(MQString* str, long len){
     if (_str){
-        return memcmp(_str, str->getStr(), len);
+        return strncmp(_str, str->getStr(), len);
     }else if (_constStr){
-        return memcmp(_constStr, str->getConstStr(), len);
+        return strncmp(_constStr, str->getConstStr(), len);
     }
     return 1;
 }
+
 
 bool MQString::operator==(MQString &str){
 	return (comp(&str) == 0);
@@ -142,7 +151,7 @@ bool MQString::operator!=(MQString &str){
 
 
 void MQString::copy(MQString* str){
-    _length = str->getCharLength();
+    //_length = str->getCharLength();
     if (str->isConst()){
         _constStr = getConstStr();
     }else{
@@ -151,47 +160,47 @@ void MQString::copy(MQString* str){
 }
 
 MQString* MQString::create(){
-    char* newStr = (char*)calloc(getDataLength(), sizeof(char));
+    char* newStr = (char*)calloc(getCharLength()+ 1, sizeof(char));
     memcpy(newStr, getConstStr(), getCharLength());
     MQString* newPtr = new MQString((const char*)newStr);
     return newPtr;
 }
 
 void MQString::copy(const char* str){
-    _length = strlen(str);
+    //_length = strlen(str);
     _constStr = str;
     _str = NULL;
     freeStr();
 }
 
 void MQString::copy(char* str){
-    _length = strlen(str);
+    //_length = strlen(str);
     freeStr();
-    _str = (char*)calloc(_length, sizeof(char));
+    _str = (char*)calloc(strlen(str) + 1, sizeof(char));
     _constStr = NULL;
-    memcpy(_str, str, _length);
+    strcpy(_str, str);
 }
 
 void MQString::writeBuf(uint8_t* buf){
     if (_str){
-        memcpy(buf + 2, _str, _length);
+        memcpy(buf, _str, strlen(_str));
     }else if (_constStr){
-        memcpy(buf + 2, _constStr, _length);
+        memcpy(buf, _constStr, strlen(_constStr));
     }
-    setUint16(buf, _length);
+    //setUint16(buf, _length);
 }
 
 void MQString::readBuf(uint8_t* buf){
     _str = NULL;
-    _constStr = (const char*)buf + 2;
-    _length = getUint16(buf);
+    _constStr = (const char*)buf;
+    //_length = getUint16(buf);
 }
 
-uint8_t MQString::getChar(long index){
+uint8_t MQString::getChar(uint8_t index){
     if (_str){
-        return (index < _length ? _str[index]: 0);
+        return (index < strlen(_str) ? _str[index]: 0);
     }else if (_constStr){
-        return (index < _length ? _constStr[index]: 0);
+        return (index < strlen(_constStr) ? _constStr[index]: 0);
     }
     return 0;
 }
@@ -281,8 +290,11 @@ bool MqttsMessage::allocateBody(){
         return false;
     }
 }
-void MqttsMessage::setDup(){
 
+void MqttsMessage::setDup(){
+	if(_msgBuff && (_type == MQTTS_TYPE_PUBLISH || _type == MQTTS_TYPE_SUBSCRIBE)){
+		_msgBuff[2] |= 0x80;
+	}
 }
 
 void MqttsMessage::setStatus(uint8_t stat){
@@ -458,7 +470,7 @@ void MqttsGwInfo::setGwId(uint8_t id){
          Class MqttsConnect
   ======================================*/
 MqttsConnect::MqttsConnect(MQString* id){
-    setLength(id->getDataLength() + 6);
+    setLength(id->getCharLength() + 6);
     allocateBody();
     setType(MQTTS_TYPE_CONNECT);
     getBody()[1] = MQTTS_PROTOCOL_ID;
@@ -487,7 +499,7 @@ uint16_t MqttsConnect::getDuration(){
 
 void MqttsConnect::setClientId(MQString* id){
     id->writeBuf(getBody() + 4);
-    setLength(id->getDataLength() + 6);
+    setLength(id->getCharLength() + 6);
 }
 
 uint8_t* MqttsConnect::getClientId(){
@@ -551,7 +563,7 @@ MqttsWillTopic::~MqttsWillTopic(){
 }
 
 void MqttsWillTopic::setFlags(uint8_t flags){
-    flags &= 0x70;
+    flags |= 0x70;
     if (_msgBuff){
             getBody()[0] = flags;
     }
@@ -559,7 +571,7 @@ void MqttsWillTopic::setFlags(uint8_t flags){
 }
 
 void MqttsWillTopic::setWillTopic(MQString* topic){
-    setLength(topic->getDataLength() + 3);
+    setLength(topic->getCharLength() + 3);
     allocateBody();
     topic->writeBuf(getBody() + 1);
     _msgBuff[2] = _flags;
@@ -610,7 +622,7 @@ MqttsWillMsg::~MqttsWillMsg(){
 }
 
 void MqttsWillMsg::setWillMsg(MQString* msg){
-    setLength(2 + msg->getDataLength());
+    setLength(2 + msg->getCharLength());
     allocateBody();
     msg->writeBuf(getBody());
 }
@@ -658,7 +670,7 @@ uint16_t MqttsRegister::getMsgId(){
 
 }
 void MqttsRegister::setTopicName(MQString* topicName){
-    setLength(6 + topicName->getDataLength());
+    setLength(6 + topicName->getCharLength());
     allocateBody();
     topicName->writeBuf(getBody() + 4);
     setTopicId(_topicId);
@@ -782,7 +794,7 @@ void MqttsPublish::setData(uint8_t* data, uint8_t len){
 }
 
 void MqttsPublish::setData(MQString* str){
-	setLength(9 + str->getCharLength());
+	setLength(7 + str->getCharLength());
 	allocateBody();
 	setTopicId(_topicId);
 	setMsgId(_msgId);
@@ -904,7 +916,7 @@ uint16_t MqttsSubscribe::getMsgId(){
 }
 
 void MqttsSubscribe::setTopicName(MQString* data){
-    setLength(5 + data->getDataLength());
+    setLength(5 + data->getCharLength());
     allocateBody();
     data->writeBuf(getBody() + 3);
     setMsgId(_msgId);
@@ -999,7 +1011,7 @@ void MqttsUnsubscribe::setFlags(uint8_t flags){
 }
 
 void MqttsUnsubscribe::setTopicName(MQString* data){
-    setLength(5 + data->getDataLength());
+    setLength(5 + data->getCharLength());
     allocateBody();
     data->writeBuf(getBody() + 3);
     setMsgId(_msgId);
@@ -1032,7 +1044,7 @@ uint16_t MqttsUnSubAck::getMsgId(){
         Class MqttsPingReq
  ======================================*/
 MqttsPingReq::MqttsPingReq(MQString* id){
-  setLength(id->getDataLength() + 2);
+  setLength(id->getCharLength() + 2);
   setType(MQTTS_TYPE_PINGREQ);
   allocateBody();
   id->writeBuf(getBody());
