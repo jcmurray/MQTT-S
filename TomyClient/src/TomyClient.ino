@@ -69,10 +69,12 @@ MQString* tp2 = new MQString("abc/defg");
 /*----------  Functions for WDT interuption -------*/
 
 void wdtFunc0(){
+  /*
   char payload[4];
   uint32_t tm = app.getUnixTime();
   memcpy(payload, &tm, 4);
   app.publish(MQTTS_TOPICID_PREDEFINED_TIME, (const char*)payload, 4);
+  */
 }
 
 void wdtFunc1(){

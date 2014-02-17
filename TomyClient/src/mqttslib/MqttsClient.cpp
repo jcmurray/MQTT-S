@@ -780,11 +780,6 @@ int MqttsClient::exec(){
 			_clientStatus.init();
 			break;
 		}
-		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-			rc = MQTTS_ERR_REBOOT_REQUIRED;
-			_clientStatus.init();
-			break;
-		}
 	}
 
     if (!_clientStatus.isGatewayAlive()){
