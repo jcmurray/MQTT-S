@@ -83,13 +83,21 @@ MQString::MQString(){
 }
 
 MQString::MQString(const char* str){
-    //_length = strlen(str);
     if (strlen(str)){
         _constStr = str;
     }else{
         _constStr = NULL;
     }
     _str = NULL;
+}
+
+MQString::MQString(char* str){
+    if (strlen(str)){
+        _str = str;
+    }else{
+        _str = NULL;
+    }
+    _constStr = NULL;
 }
 
 MQString::~MQString(){
@@ -104,12 +112,6 @@ uint8_t MQString::getCharLength(){
     }
     return strlen(_constStr);
 }
-
-/*
-uint8_t MQString::getDataLength(){
-    return _length + 2;
-}
-*/
 
 int MQString::comp(MQString* str){
     if (_str){
@@ -151,7 +153,6 @@ bool MQString::operator!=(MQString &str){
 
 
 void MQString::copy(MQString* str){
-    //_length = str->getCharLength();
     if (str->isConst()){
         _constStr = getConstStr();
     }else{
@@ -167,14 +168,12 @@ MQString* MQString::create(){
 }
 
 void MQString::copy(const char* str){
-    //_length = strlen(str);
     _constStr = str;
     _str = NULL;
     freeStr();
 }
 
 void MQString::copy(char* str){
-    //_length = strlen(str);
     freeStr();
     _str = (char*)calloc(strlen(str) + 1, sizeof(char));
     _constStr = NULL;
@@ -774,6 +773,25 @@ void MqttsPublish::setTopicId(uint16_t id){
 uint16_t MqttsPublish::getTopicId(){
     return _topicId;
 }
+
+MQString* MqttsPublish::getTopic(MQString* topic){
+	char tp[3];
+	tp[0] = (char)*(getBody() + 1);
+	tp[1] = (char)*(getBody() + 2);
+	tp[2] = 0;
+	topic->copy(tp);
+    return topic;
+}
+
+void MqttsPublish::setTopic(MQString* topic){
+	if(topic->getCharLength() == 2){
+		topic->writeBuf((uint8_t*)(getBody() + 1));
+		memcpy((void*)&_topicId,(getBody() + 1), 2);
+		_flags &= 0xfc;
+		_flags |= MQTTS_TOPIC_TYPE_SHORT;
+	}
+}
+
 void MqttsPublish::setMsgId(uint16_t msgId){
     setUint16((uint8_t*)(getBody() + 3), msgId);
     _msgId = msgId;
@@ -920,7 +938,7 @@ void MqttsSubscribe::setTopicName(MQString* data){
     allocateBody();
     data->writeBuf(getBody() + 3);
     setMsgId(_msgId);
-    setFlags((_flags & 0xe0) | MQTTS_TOPIC_TYPE_SHORT);
+    setFlags((_flags & 0xe0) | MQTTS_TOPIC_TYPE_NORMAL);
     _ustring.copy(data);
 }
 
@@ -935,13 +953,12 @@ void MqttsSubscribe::setFrame(uint8_t* data, uint8_t len){
     memcpy(getBody(), data, len);
     _msgId = getUint16(data + 1);
     _flags = *data;
-    if ((_flags & MQTTS_TOPIC_TYPE) == MQTTS_TOPIC_TYPE_NORMAL){
-        _topicId = 0;
-        _ustring.readBuf(data + 3);
+    if ((_flags & MQTTS_TOPIC_TYPE) == MQTTS_TOPIC_TYPE_PREDEFINED){
+    	_topicId = getUint16(data + 3);
     }else{
-        _topicId = getUint16(data + 3);
+    	_topicId = 0;
+		_ustring.readBuf(data + 3);
     }
-
 }
 
 void MqttsSubscribe::setFrame(ZBResponse* resp){
@@ -1015,7 +1032,7 @@ void MqttsUnsubscribe::setTopicName(MQString* data){
     allocateBody();
     data->writeBuf(getBody() + 3);
     setMsgId(_msgId);
-    setFlags((_flags & 0xe0) | MQTTS_TOPIC_TYPE_SHORT);
+    setFlags((_flags & 0xe0) | MQTTS_TOPIC_TYPE_NORMAL);
     _ustring.copy(data);
 }
 
@@ -1273,6 +1290,14 @@ int Topics::execCallback(uint16_t topicId, MqttsPublish* msg){
     return 0;
 }
 
+int Topics::execCallback(MQString* topic, MqttsPublish* msg){
+    Topic* p = getTopic(topic);
+    if ( p != NULL) {
+        return p->execCallback(msg);
+    }
+    return 0;
+}
+
 void Topics::addTopic(MQString* topic){
     if (getTopic(topic) == NULL){
         if ( _elmCnt < _sizeMax){
@@ -1324,9 +1349,16 @@ PublishHandller::~PublishHandller(){
 
 }
 int PublishHandller::exec(MqttsPublish* msg, Topics* topics){
-    if (topics->getTopic(msg->getTopicId())){
-        return topics->getTopic(msg->getTopicId())->execCallback(msg);
-    }
+	MQString tp = MQString();
+	if((msg->getFlags() && MQTTS_TOPIC_TYPE) == MQTTS_TOPIC_TYPE_SHORT){
+		if (topics->getTopic(msg->getTopic(&tp))){
+			return topics->getTopic(msg->getTopic(&tp))->execCallback(msg);
+		}
+	}else{
+		if (topics->getTopic(msg->getTopicId())){
+			return topics->getTopic(msg->getTopicId())->execCallback(msg);
+		}
+	}
     return 0;
 }
 

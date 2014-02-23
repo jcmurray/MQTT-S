@@ -245,6 +245,9 @@ class SerialPort{
 public:
     SerialPort( );
     void begin(long baudrate);
+#if ARDUINO < 100
+    void begin(long baudrate, int serialPortNum);
+#endif
     bool send(unsigned char b);
     bool recv(unsigned char* b);
     void flush();

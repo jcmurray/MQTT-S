@@ -68,7 +68,7 @@
 typedef struct {
 	long prevTime;
 	long interval;
-	void (*callback)(void);;
+	int (*callback)(void);
 }MQ_TimerTbl;
 
 enum MQ_INT_STATUS{ WAIT, INT0_LL, INT0_WAIT_HL, INT_WDT};
@@ -79,7 +79,7 @@ enum MQ_INT_STATUS{ WAIT, INT0_LL, INT0_WAIT_HL, INT_WDT};
 class WdTimer {
 public:
 	WdTimer(void);
-	uint8_t registerCallback(long sec, void (*proc)());
+	uint8_t registerCallback(long sec, int (*proc)(void));
 	void refleshRegisterTable();
 	void start(void);
 	void stop(void);
@@ -98,10 +98,13 @@ public:
 	MqttsClientApplication();
 	~MqttsClientApplication();
 	void registerInt0Callback(void (*callback)());
-	void registerWdtCallback(long sec, void (*callback)());
+	void registerWdtCallback(long sec, int (*callback)(void));
 	void refleshWdtCallbackTable();
 	void setup(const char* clientId, uint16_t baudrate);
 	void begin(long baudrate);
+#if	ARDUINO < 100
+	void begin(long baudrate, int serialPortNum);
+#endif
 	void init(const char* clientNameId);
 	void setKeepAlive(uint16_t msec);
 	void setQos(uint8_t level);

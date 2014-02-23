@@ -222,6 +222,27 @@ void SerialPort::begin(long baudrate){
   _serialDev = (Stream*) &Serial;
 }
 
+#if ARDUINO < 100
+void SerialPort::begin(long baudrate, int serialPortNum){ //Port num overload.
+  if (serialPortNum == 0){
+    Serial.begin(baudrate);
+    _serialDev = (Stream*) &Serial;
+  }
+  else if (serialPortNum == 1){
+    Serial1.begin(baudrate);
+    _serialDev = (Stream*) &Serial1;
+  }
+  else if (serialPortNum == 2){
+    Serial2.begin(baudrate);
+    _serialDev = (Stream*) &Serial2;
+  }
+  else if (serialPortNum == 3){
+    Serial3.begin(baudrate);
+    _serialDev = (Stream*) &Serial3;
+  }
+}
+#endif
+
 bool SerialPort::checkRecvBuf(){
     return _serialDev->available() > 0;
 }

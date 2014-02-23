@@ -149,14 +149,16 @@
 #define MQTTS_ERR_ACK_TIMEOUT       -10
 #define MQTTS_ERR_PINGRESP_TIMEOUT  -11
 #define MQTTS_ERR_INVALID_TOPICID   -12
-#define MQTTS_ERR_REBOOT_REQUIRED   -13
+#define MQTTS_ERR_NO_DATA           -13
+#define MQTTS_ERR_REBOOT_REQUIRED   -14
 
 #define MQTTS_TOPIC_MULTI_WILDCARD   '#'
 #define MQTTS_TOPIC_SINGLE_WILDCARD  '+'
 
 #define MQTTS_TOPICID_NORMAL 256
 #define MQTTS_TOPICID_PREDEFINED_TIME  0x0001
-#define MQTTS_TOPIC_PREDEFINED_TIME ("PDEF/01")
+#define MQTTS_TOPIC_PREDEFINED_TIME ("$PDT/01")
+
 
 extern uint16_t getUint16(uint8_t* pos);
 extern void setUint16(uint8_t* pos, uint16_t val);
@@ -170,9 +172,9 @@ class MQString{
 public:
     MQString();
     MQString(const char*);
+    MQString(char*);
     ~MQString();
     uint8_t getCharLength();
-    //uint8_t getDataLength();
     int     comp(MQString* str);
     int     comp(const char* str);
     int     ncomp(MQString* str, long n);
@@ -190,7 +192,6 @@ public:
     bool operator!=(MQString&);
 private:
     void    freeStr();
-    //uint16_t _length;
     char*    _str;
     const char* _constStr;
 };
@@ -406,6 +407,8 @@ public:
     void setFlags(uint8_t flags);
     uint8_t getFlags();
     void setTopicId(uint16_t id);
+    void setTopic(MQString* topic);
+    MQString* getTopic(MQString* topic);
     uint16_t getTopicId();
     uint8_t  getTopicType();
     uint8_t  getQos();
@@ -423,6 +426,7 @@ private:
     uint8_t _flags;
     uint16_t _topicId;
     uint16_t _msgId;
+    MQString* _topic;
  };
 
 /*=====================================
@@ -598,7 +602,8 @@ public:
       bool     setTopicId(MQString* topic, uint16_t id);
       bool     setCallback(MQString* topic, TopicCallback callback);
       bool     setCallback(uint16_t topicId, TopicCallback callback);
-      int     execCallback(uint16_t  topicId, MqttsPublish* msg);
+      int      execCallback(uint16_t  topicId, MqttsPublish* msg);
+      int      execCallback(MQString* topic, MqttsPublish* msg);
       void     addTopic(MQString* topic);
       Topic*    match(MQString* topic);
       void     setSize(uint8_t size);

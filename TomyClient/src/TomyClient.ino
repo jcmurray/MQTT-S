@@ -68,17 +68,15 @@ MQString* tp2 = new MQString("abc/defg");
 
 /*----------  Functions for WDT interuption -------*/
 
-void wdtFunc0(){
-  /*
+int wdtFunc0(){
   char payload[4];
   uint32_t tm = app.getUnixTime();
   memcpy(payload, &tm, 4);
-  app.publish(MQTTS_TOPICID_PREDEFINED_TIME, (const char*)payload, 4);
-  */
+  return app.publish(MQTTS_TOPICID_PREDEFINED_TIME, (const char*)payload, 4);
 }
 
-void wdtFunc1(){
-  app.publish(tp2,"67890", 5);
+int wdtFunc1(){
+  return app.publish(tp2,"67890", 5);
 }
 
 /*---------- Function for INT0 interuption --------*/
@@ -88,7 +86,7 @@ void intFunc(){
 
 void setup(){
 #if defined(MQTT_DEBUG) || defined(XBEE_DEBUG)
-  debug.begin(19200);
+  debug.begin(9600);
 #endif
 
 /* -- Register Callback for INT0 --*/
@@ -98,6 +96,7 @@ void setup(){
 /*-- Register Callbacks for WDT (Sec、callback)  --*/
   
   app.registerWdtCallback(10,wdtFunc0);
+  app.registerWdtCallback(5,wdtFunc1);
 
   app.begin(9600);         // Set XBee Serial baudrate
   app.init("Node-02");      // Initialize application

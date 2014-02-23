@@ -111,6 +111,12 @@ MqttsClient::~MqttsClient(){
 void MqttsClient::begin(long baudrate){
         _sp->begin(baudrate);
 }
+#if ARDUINO < 100
+void MqttsClient::begin(long baudrate, int serialPortNum){
+        _sp->begin(baudrate, serialPortNum);
+
+}
+#endif
 #endif /* ARDUINO */
 
 #ifdef MBED
@@ -269,7 +275,7 @@ int MqttsClient::registerTopic(MQString* topic){
     mqttsMsg.setTopicName(topic);
     mqttsMsg.setMsgId(getNextMsgId());
     _topics.addTopic(topic);
-    requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
+    requestSendMsg((MqttsMessage*)&mqttsMsg);
     return exec();
 }
 
@@ -279,59 +285,50 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
 		D_MQTTW(" Gateway lost\r\n");
 		return MQTTS_ERR_GATEWAY_LOST;
 	}
+	 MqttsPublish mqttsMsg = MqttsPublish();
+
     uint16_t topicId = _topics.getTopicId(topic);
-    if (topicId){
-        MqttsPublish mqttsMsg = MqttsPublish();
-        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
-        mqttsMsg.setTopicId(topicId);
-        mqttsMsg.setData((uint8_t*)data, (uint8_t)dataLength);
-        if (_qos){
-            mqttsMsg.setMsgId(getNextMsgId());
-        }
-        requestSendMsg((MqttsMessage*)&mqttsMsg);
-        int rc = exec();
-
-		if( rc == MQTTS_ERR_INVALID_TOPICID){
-			registerTopic(topic);
-			rc = exec();
+    if (topic->getCharLength() == 2 && topicId == 0){
+		_topics.addTopic(topic);
+		if(topic->getStr()){
+			topicId = getUint16((uint8_t*)topic->getStr());
+		}else{
+			topicId = getUint16((uint8_t*)topic->getConstStr());
 		}
-		return rc;
-
-	}else{
+		_topics.setTopicId(topic, topicId);
+		mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
+		mqttsMsg.setTopic(topic);
+	}else if(topicId == 0){
 		registerTopic(topic);
 		return  exec();
+	}else{
+		mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
+		mqttsMsg.setTopicId(topicId);
 	}
+
+	mqttsMsg.setData((uint8_t*)data, (uint8_t)dataLength);
+	if (_qos){
+		mqttsMsg.setMsgId(getNextMsgId());
+	}
+	requestSendMsg((MqttsMessage*)&mqttsMsg);
+	int rc = exec();
+/*
+	if( rc == MQTTS_ERR_INVALID_TOPICID){
+		registerTopic(topic);
+		rc = exec();
+	}
+*/
+	return rc;
 }
 
 /*--------- PUBLISH ------*/
 int MqttsClient::publish(MQString* topic, MQString* data){
-	if (!isRequestable()){
-		D_MQTTW(" Gateway lost\r\n");
-		return MQTTS_ERR_GATEWAY_LOST;
+	if(data->getStr()){
+		return publish(topic, (const char*)data->getStr(),data->getCharLength());
+	}else if(data->getConstStr()){
+		return publish(topic, data->getConstStr(),data->getCharLength());
 	}
-    uint16_t topicId = _topics.getTopicId(topic);
-    if (topicId){
-        MqttsPublish mqttsMsg = MqttsPublish();
-        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
-        mqttsMsg.setTopicId(topicId);
-        mqttsMsg.setData(data);
-        if (_qos){
-            mqttsMsg.setMsgId(getNextMsgId());
-        }
-        requestSendMsg((MqttsMessage*)&mqttsMsg);
-
-        int rc = exec();
-
-		if( rc == MQTTS_ERR_INVALID_TOPICID){
-			registerTopic(topic);
-			rc = exec();
-		}
-		return rc;
-
-    }else{
-    	registerTopic(topic);
-		return  exec();
-    }
+	return MQTTS_ERR_NO_DATA;
 }
 
 /*--------- PUBLISH ------*/
@@ -359,12 +356,20 @@ int MqttsClient::subscribe(MQString* topic, TopicCallback callback){
 	}
     MqttsSubscribe mqttsMsg = MqttsSubscribe();
     uint16_t topicId = _topics.getTopicId(topic);
-    if (topicId){
-        mqttsMsg.setTopicId(topicId);
-        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
+    if (topic->getCharLength() == 2 && topicId == 0){
+    	if(topic->getStr()){
+    		topicId = getUint16((uint8_t*)topic->getStr());
+    	}else{
+    		topicId = getUint16((uint8_t*)topic->getConstStr());
+    	}
+		_topics.addTopic(topic);
+		_topics.setTopicId(topic, topicId);
+		_topics.setCallback(topic, callback);
+		mqttsMsg.setTopicName(topic);
+		mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
     }else{
         mqttsMsg.setTopicName(topic);
-        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
+        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
         _topics.addTopic(topic);
         _topics.setCallback(topic, callback);
     }
@@ -396,12 +401,12 @@ int MqttsClient::unsubscribe(MQString* topic){
 	}
     MqttsUnsubscribe mqttsMsg = MqttsUnsubscribe();
     uint16_t topicId = _topics.getTopicId(topic);
-    if (topicId){
-        mqttsMsg.setTopicId(topicId);
-        mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
-    }else{
+    if (topic->getCharLength() == 2 && topicId > 0){
         mqttsMsg.setTopicName(topic);
         mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
+    }else{
+        mqttsMsg.setTopicId(topicId);
+		mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
     }
     mqttsMsg.setMsgId(getNextMsgId());
     requestSendMsg((MqttsMessage*)&mqttsMsg);
@@ -751,35 +756,37 @@ int MqttsClient::exec(){
         rc = sendRecvMsg();
 
 		if ((rc == MQTTS_ERR_NO_ERROR) && getMsgRequestCount() == 0 ){
-			break;
-		}
-		if(rc == MQTTS_ERR_NO_TOPICID){
-			break;
-		}
-		if(rc == MQTTS_ERR_INVALID_TOPICID){
-			break;
-		}
-		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
+
+		}else if(rc == MQTTS_ERR_NO_TOPICID){
+
+		}else if(rc == MQTTS_ERR_INVALID_TOPICID){
+
+		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
 			clearMsgRequest();
 			_clientStatus.recvDISCONNECT();
-			break;
-		}
-		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_REGISTER){
+
+		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_REGISTER){
 			_clientStatus.recvDISCONNECT();
 			clearMsgRequest();
-			break;
-		}
-		if (rc == MQTTS_ERR_RETRY_OVER &&
+
+		}else if (rc == MQTTS_ERR_RETRY_OVER &&
 			(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC || getMsgRequestType() == MQTTS_TYPE_WILLMSG) ){
 			clearMsgRequest();
 			_clientStatus.recvDISCONNECT();
-			break;
-		}
-		if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_CONNECT){
+
+		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_CONNECT){
 			clearMsgRequest();
 			_clientStatus.init();
-			break;
+
+		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
+			clearMsgRequest();
+			_clientStatus.init();
+			rc = MQTTS_ERR_REBOOT_REQUIRED;
+
+		}else{
+			continue;
 		}
+		break;
 	}
 
     if (!_clientStatus.isGatewayAlive()){
@@ -825,7 +832,7 @@ int MqttsClient::sendRecvMsg(){
         if (_clientStatus.isAvailableToSend()){
 			rc = unicast(MQTTS_TIME_RETRY);
 		}else{
-			//rc = MQTTS_ERR_NOT_CONNECTED;
+			rc = MQTTS_ERR_NOT_CONNECTED;
 		}
 
 	/*======= Receive Message ===========*/

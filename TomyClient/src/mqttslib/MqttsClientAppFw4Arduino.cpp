@@ -135,7 +135,7 @@ void MqttsClientApplication::registerInt0Callback(void (*callback)()){
 }
 
 
-void MqttsClientApplication::registerWdtCallback(long sec, void (*callback)()){
+void MqttsClientApplication::registerWdtCallback(long sec, int (*callback)()){
     _wdTimer.registerCallback(sec, callback);
 }
 
@@ -225,6 +225,12 @@ void MqttsClientApplication::setSleepMode(uint8_t sleepMode){
 void MqttsClientApplication::begin(long baudrate){
     _mqtts.begin(baudrate);
 }
+
+#if ARDUINO < 100
+void MqttsClientApplication::begin(long baudrate, int serialPortNum){
+    _mqtts.begin(baudrate, serialPortNum);
+}
+#endif
 
 void MqttsClientApplication::init(const char* clientNameId){
     _mqtts.init(clientNameId);
@@ -347,28 +353,31 @@ void WdTimer::stop(void){
 
 
 bool WdTimer::wakeUp(void){
-    bool rc = false;
+    bool rcflg = false;
     for(uint8_t i = 0; i < _timerCnt; i++) {
         if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
-            (_timerTbls[i].callback)();
+            int rc = (_timerTbls[i].callback)();
+            if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
+            	resetArduino();
+            }
             _timerTbls[i].prevTime = theApplication->getUnixTime();
-            rc = true;
+            rcflg = true;
         }
     }
-    return rc;
+    return rcflg;
 }
 
 
-uint8_t WdTimer::registerCallback(long sec, void (*callback)()){
+uint8_t WdTimer::registerCallback(long sec, int (*callback)(void)){
     MQ_TimerTbl *savTbl = _timerTbls;
     MQ_TimerTbl *newTbl = (MQ_TimerTbl*)calloc(_timerCnt + 1,sizeof(MQ_TimerTbl));
 
     if ( newTbl != NULL ) {
         _timerTbls = newTbl;
         for(uint8_t i = 0; i < _timerCnt; i++ ){
-                _timerTbls[i].prevTime = savTbl[i].prevTime;
-                _timerTbls[i].interval = savTbl[i].interval;
-                _timerTbls[i].callback = savTbl[i].callback;
+			_timerTbls[i].prevTime = savTbl[i].prevTime;
+			_timerTbls[i].interval = savTbl[i].interval;
+			_timerTbls[i].callback = savTbl[i].callback;
         }
         free(savTbl);
 

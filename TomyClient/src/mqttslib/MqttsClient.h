@@ -141,6 +141,9 @@ public:
 
   #ifdef ARDUINO
     void begin(long baudrate);
+    #if ARDUINO < 100
+        void begin(long baudrate, int serialPortNum);
+    #endif
   #else
     #ifdef MBED
         void begin(long baudrate);
