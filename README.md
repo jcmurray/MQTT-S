@@ -16,44 +16,45 @@ Supported functions
 *  Automatic SEARCHGW, GWINFO
 *  Automatic CONNECT, WILLTOPICREQ, WILLTOPIC, WILLMSGREQ, WILLMSG
 *  Automatic PINGREQ, PINGRESP
-*  Automatic CONNACK, REGISTER, REGACK, SUBACK, PUBACK, UNSUBACK
+*  Automatic CONNACK, REGACK, SUBACK, PUBACK, UNSUBACK
 *  
-*  SUBSCRIBE, PUBLISH, UNSUBSCRIBE, DISCONNECT
+*  REGISTER, PUBLISH, SUBSCRIBE, UNSUBSCRIBE, DISCONNECT
 
 Implemented control flows:  
-   Application program executes publish() function,   
+   Application program executes regTopic(),publish() and subscribe() functions,   
    Message flow as berrow is conducted automaticaly.  
 
 
-                 Client              Gateway               Broker
-                    |                   |                    |      
-       publish() -->| --- SERCHGW ----> |                    |  
-                    | <-- GWINFO  ----- |                    |  
-                    | --- CONNECT ----> |                    |  
-                    | <--WILLTOPICREQ-- |                    |  
-                    | --- WILLTOPIC --> |                    |  
-                    | <-- WILLMSGREQ -- |                    |  
-                    | --- WILLMSG ----> | ---- CONNECT ----> |(accepted)     
-                    | <-- CONNACK ----- | <--- CONNACK ----- |   
-                    | --- PUBLISH ----> |                    |  
-                    | <-- PUBACK  ----- | (invalid TopicId)  |  
-                    | --- REGISTER ---> |                    |  
-                    | <-- REGACK  ----- |                    |  
-                    | --- PUBLISH ----> | ---- PUBLISH ----> |(accepted)  
-                    | <-- PUBACK  ----- | <---- PUBACK ----- |    
-                    |                   |                    |    
-                    //                  //                   //      
-                    |                   |                    |          
-     subscribe() -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
-     [set Callback] | <-- SUBACK ------ | <--- SUBACK ------ |    
-                    |                   |                    |    
-                    //                  //                   //    
-                    |                   |                    |    
-                    | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUBLISH  
-    [exec Callback] | <-- PUBLISH  ---- |                    |  
-                    | --- PUBACK   ---> | ---- PUBACK  ----> |--> PUBACK  
-                    |                   |                    |  
-                
+                         Client              Gateway               Broker 
+                            |                   |                    |      
+         registerTopic() -->| --- SERCHGW ----> |                    |  
+                            | <-- GWINFO  ----- |                    |  
+                            | --- CONNECT ----> |                    |  
+                            | <--WILLTOPICREQ-- |                    |  
+                            | --- WILLTOPIC --> |                    |  
+                            | <-- WILLMSGREQ -- |                    |  
+                            | --- WILLMSG ----> | ---- CONNECT ----> |(accepted)     
+                            | <-- CONNACK ----- | <--- CONNACK ----- |  
+                            | --- REGISTER ---> |                    |  
+                            | <-- REGACK  ----- |                    | 
+                            |                   |                    |
+                            //                  //                   // 
+                            |                   |                    |  
+               publish() -->| --- PUBLISH ----> | ---- PUBLISH ----> |(accepted)  
+                            | <-- PUBACK  ----- | <---- PUBACK ----- |    
+                            |                   |                    |    
+                            //                  //                   //      
+                            |                   |                    |          
+             subscribe() -->| --- SUBSCRIBE --> | ---- SUBSCRIBE --> |     
+             [set Callback] | <-- SUBACK ------ | <--- SUBACK ------ |    
+                            |                   |                    |    
+                            //                  //                   //    
+                            |                   |                    |    
+                            | <-- REGISTER ---- | <--- PUBLISH ----- |<-- PUBLISH  
+            [exec Callback] | <-- PUBLISH  ---- |                    |  
+                            | --- PUBACK   ---> | ---- PUBACK  ----> |--> PUBACK  
+                            |                   |                    |  
+                        
 
 Usage
 ------
@@ -133,6 +134,7 @@ Client application sample which is used for debug.
     mqtts.setWillMessage(willmsg);      // set WILLMSG  those are sent automatically. 
     mqtts.setKeepAlive(60000);          // PINGREQ interval time
 
+    mqtts.registerTopic(topic);         // Register Topic and acquire TopicId.    
     mqtts.subscribe(topic, callback);   // Execute the callback, when the subscribed topic's data is published. 
     mqtts.publish(topic, payload, payload_length); // publish the data, topic is converted into ID automatically.
     mqtts.publish(topic, MQString* payload);  

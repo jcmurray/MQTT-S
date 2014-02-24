@@ -115,9 +115,17 @@ uint8_t MQString::getCharLength(){
 
 int MQString::comp(MQString* str){
     if (_str){
-        return (strcmp(_str, str->getStr()));
+    	if(str->getStr()){
+    		return (strcmp(_str, str->getStr()));
+    	}else if(str->getConstStr()){
+    		return (strcmp(_str, str->getConstStr()));
+    	}
     }else if(_constStr){
-        return (strcmp(_constStr, str->getConstStr()));
+    	if(str->getStr()){
+    		return (strcmp(_constStr, str->getStr()));
+    	}else if(str->getConstStr()){
+    		return (strcmp(_constStr, str->getConstStr()));
+    	}
     }
     return 1;
 }
@@ -178,6 +186,13 @@ void MQString::copy(char* str){
     _str = (char*)calloc(strlen(str) + 1, sizeof(char));
     _constStr = NULL;
     strcpy(_str, str);
+}
+
+void MQString::copy(uint8_t* str, uint8_t len){
+    freeStr();
+    _str = (char*)calloc(len + 1, sizeof(char));
+    _constStr = NULL;
+    memcpy(_str, str, len);
 }
 
 void MQString::writeBuf(uint8_t* buf){

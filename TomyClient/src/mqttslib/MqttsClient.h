@@ -43,6 +43,7 @@
         #include "Arduino.h"
         #include <inttypes.h>
         #include <MQTTS.h>
+		#define SENDQ_SIZE    3
 #else
         #if defined(ARDUINO) && ARDUINO < 100
                 #include "WProgram.h"
@@ -55,6 +56,7 @@
                 #include <iostream>
                 #include "MQTTS.h"
         #endif
+		#define SENDQ_SIZE    5
 #endif
 
 
@@ -67,7 +69,7 @@
 #define CL_ASLEEP        2
 #define CL_AWAKE         3
 
-#define SENDQ_SIZE    6
+
 
 using namespace tomyClient;
 

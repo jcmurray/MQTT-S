@@ -181,6 +181,7 @@ public:
     void    copy(MQString* str);
     void    copy(const char* str);
     void    copy(char* str);
+    void    copy(uint8_t* str, uint8_t len);
     MQString* create();
     void    writeBuf(uint8_t* buf);
     void    readBuf(uint8_t* buf);

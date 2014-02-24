@@ -47,15 +47,10 @@ int  setTime(MqttsPublish* msg){
   return 0;
 }
 
-MQString* on = new MQString("on");
-MQString* off = new MQString("off");
-
 int  blinkIndicator(MqttsPublish* msg){
-  MQString sw = MQString();
-  sw.readBuf(msg->getData());
-  if( sw == *on){
+  if( strncmp("on", (const char*)msg->getData(),2)){
     app.indicatorOn();
-  }else if( sw == *off){
+  }else if( strncmp("off", (const char*)msg->getData(),3)){
     app.indicatorOff();
   }
   return 0;
@@ -64,7 +59,7 @@ int  blinkIndicator(MqttsPublish* msg){
 
 /*----------- Create Topics -----------------*/
 MQString* tp1 = new MQString("dev/indicator");
-MQString* tp2 = new MQString("abc/defg");
+//MQString* tp2 = new MQString("dev/test");
 
 /*----------  Functions for WDT interuption -------*/
 
@@ -75,10 +70,11 @@ int wdtFunc0(){
   return app.publish(MQTTS_TOPICID_PREDEFINED_TIME, (const char*)payload, 4);
 }
 
+/*
 int wdtFunc1(){
   return app.publish(tp2,"67890", 5);
 }
-
+*/
 /*---------- Function for INT0 interuption --------*/
 void intFunc(){
   
@@ -94,9 +90,8 @@ void setup(){
   app.registerInt0Callback(intFunc);
 
 /*-- Register Callbacks for WDT (Sec、callback)  --*/
-  
   app.registerWdtCallback(10,wdtFunc0);
-  app.registerWdtCallback(5,wdtFunc1);
+  //app.registerWdtCallback(5,wdtFunc1);
 
   app.begin(9600);         // Set XBee Serial baudrate
   app.init("Node-02");      // Initialize application
@@ -104,14 +99,17 @@ void setup(){
 
   app.setKeepAlive(300);            // Set PINGREQ interval
   app.setSleepMode(MQ_MODE_NOSLEEP);
-  
+  app.setClean(true);
   app.blinkIndicator(1000);  
-  app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
+  
+  //app.registerTopic(tp2);
+  
+  //app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
   app.subscribe(tp1, blinkIndicator); 
   
-  app.startWdt();          // Start Watch dog timer interruption
+  //app.startWdt();          // Start Watch dog timer interruption
 }
-
+ 
 void loop(){  
     app.exec();
 }

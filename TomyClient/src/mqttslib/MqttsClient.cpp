@@ -634,20 +634,18 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
             MqttsRegAck mqMsg = MqttsRegAck();
             copyMsg(&mqMsg, recvMsg);
             if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 2)){
-                if (mqMsg.getMsgId() == getUint16(_sendQ->getMessage(0)->getBody() + 2)){
-                    if (getUint16((uint8_t*)_sendQ->getMessage(0)->getBody()+4)){
-                        if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
-                            setMsgRequestStatus(MQTTS_MSG_COMPLETE);
-                            MQString topic;
-                            topic.readBuf(_sendQ->getMessage(0)->getBody() + 4);
-                            _topics.setTopicId(&topic, mqMsg.getTopicId());
-                        }else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_CONGESTION){
-                          setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
-                        }else{
-                            *returnCode = MQTTS_ERR_REJECTED;
-                        }
-                    }
-                }
+				if (getUint16((uint8_t*)_sendQ->getMessage(0)->getBody()+4)){
+					if (mqMsg.getReturnCode() == MQTTS_RC_ACCEPTED){
+						setMsgRequestStatus(MQTTS_MSG_COMPLETE);
+						MQString topic;
+						topic.readBuf(_sendQ->getMessage(0)->getBody() + 4);
+						_topics.setTopicId(&topic, mqMsg.getTopicId());
+					}else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_CONGESTION){
+					  setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
+					}else{
+						*returnCode = MQTTS_ERR_REJECTED;
+					}
+				}
             }
         }
 
@@ -665,9 +663,9 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
                 setMsgRequestStatus(MQTTS_MSG_COMPLETE);
                 if (_sendQ->getMessage(0)->getBodyLength() > 5){ // TopicName is not Id
                     MQString topic;
-                    topic.readBuf(_sendQ->getMessage(0)->getBody() + 3);
+                    topic.copy(_sendQ->getMessage(0)->getBody() + 3,
+                    		_sendQ->getMessage(0)->getBodyLength() - 3);
                     _topics.setTopicId(&topic, mqMsg.getTopicId());
-
                 }
             }else if (mqMsg.getReturnCode() == MQTTS_RC_REJECTED_CONGESTION){
                 setMsgRequestStatus(MQTTS_MSG_RESEND_REQ);
@@ -774,7 +772,8 @@ int MqttsClient::exec(){
 			clearMsgRequest();
 			_clientStatus.recvDISCONNECT();
 
-		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_CONNECT){
+		}else if (rc == MQTTS_ERR_RETRY_OVER &&
+				(getMsgRequestType() == MQTTS_TYPE_CONNECT || getMsgRequestType() == MQTTS_TYPE_PINGREQ)){
 			clearMsgRequest();
 			_clientStatus.init();
 
@@ -813,7 +812,7 @@ int MqttsClient::sendRecvMsg(){
 		delayTime(MQTTS_TIME_SEARCHGW);
 
 		_clientStatus.sendSEARCHGW();
-		rc = broadcast(MQTTS_TIME_SEARCHGW);
+		rc = broadcast(MQTTS_TIME_RETRY);
 		if ( rc != MQTTS_ERR_NO_ERROR){
 			return rc;
 		}
