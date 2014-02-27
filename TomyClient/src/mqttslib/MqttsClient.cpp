@@ -534,7 +534,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
 			MqttsPublish mqMsg = MqttsPublish();
 			mqMsg.setFrame(recvMsg);
 			_pubHdl.exec(&mqMsg,&_topics);   // Execute Callback routine
-			if (mqMsg.getQos() && MQTTS_FLAG_QOS_1){
+			if (mqMsg.getQos() == MQTTS_FLAG_QOS_1){
 				pubAck(mqMsg.getTopicId(), mqMsg.getMsgId(), MQTTS_RC_ACCEPTED);
 			}
     	}else{
