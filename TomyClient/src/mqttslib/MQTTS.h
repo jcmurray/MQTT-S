@@ -127,6 +127,7 @@
 #define MQTTS_MSG_WAIT_ACK    3
 #define MQTTS_MSG_COMPLETE    4
 #define MQTTS_MSG_REJECTED    5
+#define MQTTS_MSG_REBOOT_REQ  6
 
 
 #define MQTTS_GW_INIT         0
@@ -156,10 +157,8 @@
 #define MQTTS_TOPIC_SINGLE_WILDCARD  '+'
 
 #define MQTTS_TOPICID_NORMAL 256
-#define MQTTS_TOPICID_PREDEFINED_START  0x0001
-#define MQTTS_TOPIC_PREDEFINED_START    ("$GW/01")
-#define MQTTS_TOPICID_PREDEFINED_TIME   0x0002
-#define MQTTS_TOPIC_PREDEFINED_TIME     ("$GW/02")
+#define MQTTS_TOPICID_PREDEFINED_TIME   0x0001
+#define MQTTS_TOPIC_PREDEFINED_TIME     ("$GW/01")
 
 extern uint16_t getUint16(uint8_t* pos);
 extern void setUint16(uint8_t* pos, uint16_t val);

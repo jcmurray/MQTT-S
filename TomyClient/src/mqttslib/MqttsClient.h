@@ -91,7 +91,7 @@ public:
 	uint16_t getKeepAlive();
 	void setKeepAlive(uint16_t sec);
 	void sendSEARCHGW();
-	void recvGWINFO(MqttsGwInfo* gwi);
+	bool recvGWINFO(MqttsGwInfo* gwi);
 	void recvADVERTISE(MqttsAdvertise* adv);
 	void recvCONNACK();
 	void recvDISCONNECT();

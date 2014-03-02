@@ -592,8 +592,11 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
         MqttsGwInfo mqMsg = MqttsGwInfo();
         copyMsg(&mqMsg, recvMsg);
         if (getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-            setMsgRequestStatus(MQTTS_MSG_COMPLETE);
-            _clientStatus.recvGWINFO(&mqMsg);
+        	if(_clientStatus.recvGWINFO(&mqMsg)){
+        		setMsgRequestStatus(MQTTS_MSG_COMPLETE);
+        	}else{
+        		setMsgRequestStatus(MQTTS_MSG_REBOOT_REQ);
+        	}
             _zbee->setGwAddress(_zbee->getRxRemoteAddress64(), _zbee->getRxRemoteAddress16());
         }
 
@@ -872,6 +875,8 @@ int MqttsClient::broadcast(uint16_t packetReadTimeout){
            if (getMsgRequestStatus() == MQTTS_MSG_COMPLETE){
         	   clearMsgRequest();
                return MQTTS_ERR_NO_ERROR;
+           }else if(getMsgRequestStatus() == MQTTS_MSG_REBOOT_REQ){
+        	   return MQTTS_ERR_RETRY_OVER;
            }
            _zbee->readPacket();
         }
@@ -1077,6 +1082,7 @@ uint8_t SendQue::getCount(){
  ======================================*/
 ClientStatus::ClientStatus(){
 	init();
+	_gwId = 0;
 }
 
 ClientStatus::~ClientStatus(){
@@ -1086,7 +1092,7 @@ ClientStatus::~ClientStatus(){
 void ClientStatus::init(){
 	_gwStat = GW_LOST;
 	_clStat = CL_DISCONNECTED;
-	_gwId = 0;
+
 	_keepAliveDuration = MQTTS_DEFAULT_DURATION;
 	_advertiseDuration = MQTTS_DEFAULT_KEEPALIVE;
 	_advertiseTimer.stop();
@@ -1151,17 +1157,22 @@ void ClientStatus::sendSEARCHGW(){
 	_gwStat = GW_SEARCHING;
 }
 
-void ClientStatus::recvGWINFO(MqttsGwInfo* gwi){
+bool ClientStatus::recvGWINFO(MqttsGwInfo* gwi){
+	bool rc = true;
 	if (_gwStat == GW_SEARCHING){
 		_gwStat = GW_FIND;
-		_gwId =  gwi->getGwId();
+		if(_gwId != gwi->getGwId() && _gwId != 0){
+			rc = false;
+		}
+		_gwId = gwi->getGwId();
 	}
+	return rc;
 }
 
 void ClientStatus::recvADVERTISE(MqttsAdvertise* adv){
 	if ( adv->getGwId() == _gwId ){
 		_advertiseDuration = (adv->getDuration() > 60 ?
-				adv->getDuration() +  adv->getDuration() / 10 :
+				adv->getDuration() + adv->getDuration() / 10 :
 				adv->getDuration() + adv->getDuration() / 2);
 		_advertiseTimer.start(_advertiseDuration * 1000UL);
 	}
