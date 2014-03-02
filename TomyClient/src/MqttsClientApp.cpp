@@ -99,7 +99,9 @@ boot:
 
 			tm.start(5000);
 			while(!tm.isTimeUp()){
-				mqtts.exec();
+				if(mqtts.exec() == MQTTS_ERR_REBOOT_REQUIRED){
+					goto boot;
+				}
 			}
 		}
    }
