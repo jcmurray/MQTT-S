@@ -90,7 +90,7 @@ MqttsClient::MqttsClient(){
     _duration = 0;
     _clientId = new MQString();
     _clientFlg = 0;
-    _nRetry = 5;
+    _nRetry = MQTTS_RETRY_COUNT;
     _nRetryCnt = 0;
     _tRetry = 0;
     _willTopic = _willMessage = NULL;
@@ -593,7 +593,7 @@ void MqttsClient::recieveMessageHandler(ZBResponse* recvMsg, int* returnCode){
         copyMsg(&mqMsg, recvMsg);
         if (getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
             setMsgRequestStatus(MQTTS_MSG_COMPLETE);
-            _clientStatus.recvGWINFO();
+            _clientStatus.recvGWINFO(&mqMsg);
             _zbee->setGwAddress(_zbee->getRxRemoteAddress64(), _zbee->getRxRemoteAddress16());
         }
 
@@ -892,7 +892,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
     	if (getMsgRequestStatus() == MQTTS_MSG_RESEND_REQ){
 			/* ------  Re send Time delay -------*/
 			#ifdef ARDUINO
-			  delay(MQTTS_TIME_WAIT * 1000);
+			  delay(MQTTS_TIME_WAIT * 1000UL);
 			#else
 				#ifdef MBED
 					wait_ms(MQTTS_TIME_WAIT * 1000);
@@ -1076,13 +1076,7 @@ uint8_t SendQue::getCount(){
         Class SendQue
  ======================================*/
 ClientStatus::ClientStatus(){
-	_gwId = 0;
-	_gwStat = GW_LOST;
-	_clStat = CL_DISCONNECTED;
-	_keepAliveDuration = MQTTS_DEFAULT_DURATION;
-	_advertiseDuration = MQTTS_DEFAULT_KEEPALIVE;
-	_keepAliveTimer.stop();
-	_advertiseTimer.stop();
+	init();
 }
 
 ClientStatus::~ClientStatus(){
@@ -1092,6 +1086,11 @@ ClientStatus::~ClientStatus(){
 void ClientStatus::init(){
 	_gwStat = GW_LOST;
 	_clStat = CL_DISCONNECTED;
+	_gwId = 0;
+	_keepAliveDuration = MQTTS_DEFAULT_DURATION;
+	_advertiseDuration = MQTTS_DEFAULT_KEEPALIVE;
+	_advertiseTimer.stop();
+	_keepAliveTimer.stop();
 }
 
 bool ClientStatus::isLost(){
@@ -1129,12 +1128,11 @@ bool ClientStatus::isAvailableToSend(){
 }
 
 bool ClientStatus::isPINGREQRequired(){
-	return (_keepAliveTimer.isTimeUp(_keepAliveDuration) && (_clStat != CL_DISCONNECTED));
+	return (_keepAliveTimer.isTimeUp(_keepAliveDuration * 1000) && (_clStat != CL_DISCONNECTED));
 }
 
 bool ClientStatus::isGatewayAlive(){
-	if(_advertiseTimer.isTimeUp(_advertiseDuration)){
-		_gwStat = GW_LOST;
+	if ( _gwId && _advertiseTimer.isTimeUp(_advertiseDuration * 1000)){
 		return false;
 	}else{
 		return true;
@@ -1142,38 +1140,43 @@ bool ClientStatus::isGatewayAlive(){
 }
 
 uint16_t ClientStatus::getKeepAlive(){
-	return _keepAliveDuration / 1000;
+	return _keepAliveDuration;
 }
 
 void ClientStatus::setKeepAlive(uint16_t sec){
-	_keepAliveDuration = sec * 1000;
+	_keepAliveDuration = sec;
 }
 
 void ClientStatus::sendSEARCHGW(){
 	_gwStat = GW_SEARCHING;
 }
 
-void ClientStatus::recvGWINFO(){
+void ClientStatus::recvGWINFO(MqttsGwInfo* gwi){
 	if (_gwStat == GW_SEARCHING){
 		_gwStat = GW_FIND;
+		_gwId =  gwi->getGwId();
 	}
 }
 
 void ClientStatus::recvADVERTISE(MqttsAdvertise* adv){
-	if ( adv->getGwId() == _gwId || _gwId == 0){
-		_advertiseTimer.start();
+	if ( adv->getGwId() == _gwId ){
+		if(_advertiseTimer.isTimeUp(_advertiseDuration * 1000)){
+			_gwStat = GW_LOST;
+		}
 		_advertiseDuration = (adv->getDuration() > 60 ?
-				adv->getDuration() * 1100 : adv->getDuration() * 1500);
-		_gwId = adv->getGwId();
+				adv->getDuration() +  adv->getDuration() / 10 : adv->getDuration() + adv->getDuration() / 2);
+		_advertiseTimer.start();
 	}
 }
 
 void ClientStatus::recvCONNACK(){
 	_clStat = CL_ACTIVE;
+	_advertiseTimer.start();
 }
 
 void ClientStatus::recvDISCONNECT(){
 	_clStat = CL_DISCONNECTED;
+	_advertiseTimer.stop();
 }
 
 void ClientStatus::setLastSendTime(){
@@ -1185,7 +1188,8 @@ void ClientStatus::recvPINGRESP(){
     _keepAliveTimer.start();
 }
 
-
-
-
+void ClientStatus::setModeSleep(){
+	_keepAliveTimer.stop();
+	_advertiseTimer.stop();
+}
 /*===================  End of file ====================*/

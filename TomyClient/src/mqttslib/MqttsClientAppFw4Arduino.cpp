@@ -265,8 +265,8 @@ int MqttsClientApplication::disconnect(uint16_t duration){
     return _mqtts.disconnect(duration);
 }
 
-void MqttsClientApplication::setKeepAlive(uint16_t msec){
-    _mqtts.setKeepAlive(msec);
+void MqttsClientApplication::setKeepAlive(uint16_t sec){
+    _mqtts.setKeepAlive(sec);
 }
 void MqttsClientApplication::setQos(uint8_t level){
     _mqtts.setQos(level);

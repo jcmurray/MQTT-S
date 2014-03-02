@@ -54,6 +54,7 @@ int fnTp1(MqttsPublish* msg){
 }
 
 
+
 int main(int argc, char **argv){
 
     MqttsClient mqtts = MqttsClient();
@@ -81,14 +82,13 @@ boot:
 	mqtts.registerTopic(topic1);
 	mqtts.registerTopic(topic2);
 
-	mqtts.subscribe(topic1, fnTp1);
+	//mqtts.subscribe(topic1, fnTp1);
 
     while(true){
 
 		for(int i = 0; i < 10; i++){
 			rc = mqtts.publish(topic1,(i % 2 ? on : off));
 			if(rc == MQTTS_ERR_INVALID_TOPICID || rc == MQTTS_ERR_REBOOT_REQUIRED){
-				/*  Gateway is down */
 				goto boot;
 			}
 
@@ -96,6 +96,7 @@ boot:
 			if(rc == MQTTS_ERR_INVALID_TOPICID || rc == MQTTS_ERR_REBOOT_REQUIRED){
 				goto boot;
 			}
+
 			tm.start(5000);
 			while(!tm.isTimeUp()){
 				mqtts.exec();

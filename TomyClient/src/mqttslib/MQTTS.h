@@ -156,9 +156,10 @@
 #define MQTTS_TOPIC_SINGLE_WILDCARD  '+'
 
 #define MQTTS_TOPICID_NORMAL 256
-#define MQTTS_TOPICID_PREDEFINED_TIME  0x0001
-#define MQTTS_TOPIC_PREDEFINED_TIME ("$PDT/01")
-
+#define MQTTS_TOPICID_PREDEFINED_START  0x0001
+#define MQTTS_TOPIC_PREDEFINED_START    ("$GW/01")
+#define MQTTS_TOPICID_PREDEFINED_TIME   0x0002
+#define MQTTS_TOPIC_PREDEFINED_TIME     ("$GW/02")
 
 extern uint16_t getUint16(uint8_t* pos);
 extern void setUint16(uint8_t* pos, uint16_t val);

@@ -139,6 +139,7 @@ bool XTimer::isTimeUp(uint32_t msec){
 void XTimer::stop(){
     _startTime = 0;
     _millis = 0;
+    _currentTime = 0;
 }
 
 #endif

@@ -69,7 +69,7 @@
 #define CL_ASLEEP        2
 #define CL_AWAKE         3
 
-
+#define MQTTS_RETRY_COUNT 3
 
 using namespace tomyClient;
 
@@ -91,12 +91,13 @@ public:
 	uint16_t getKeepAlive();
 	void setKeepAlive(uint16_t sec);
 	void sendSEARCHGW();
-	void recvGWINFO();
+	void recvGWINFO(MqttsGwInfo* gwi);
 	void recvADVERTISE(MqttsAdvertise* adv);
 	void recvCONNACK();
 	void recvDISCONNECT();
 	void recvPINGRESP();
 	void setLastSendTime();
+	void setModeSleep();
 	void init();
 
 private:
