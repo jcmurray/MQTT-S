@@ -152,7 +152,7 @@ XTimer::XTimer(){
 }
 
 void XTimer::start(uint32_t msec){
-    _timer.start();
+	_startTime = time(NULL);
     _millis = msec;
 }
 
@@ -161,12 +161,16 @@ bool XTimer::isTimeUp(){
 }
 
 bool XTimer::isTimeUp(uint32_t msec){
-    return _timer.read_ms() > msec;
+	if ( _startTime){
+		return time(NULL) - _startTime > msec / 1000;
+	}else
+		return false;
+	}
 }
 
 void XTimer::stop(){
-    _timer.stop();
-    _millis = 0;
+	_startTime = 0;
+	_millis = 0;
 }
 #endif
 

@@ -1128,14 +1128,14 @@ bool ClientStatus::isAvailableToSend(){
 }
 
 bool ClientStatus::isPINGREQRequired(){
-	return (_keepAliveTimer.isTimeUp(_keepAliveDuration * 1000) && (_clStat != CL_DISCONNECTED));
+	return (_keepAliveTimer.isTimeUp() && (_clStat != CL_DISCONNECTED));
 }
 
 bool ClientStatus::isGatewayAlive(){
-	if ( _gwId && _advertiseTimer.isTimeUp(_advertiseDuration * 1000)){
-		return false;
-	}else{
+	if (!_advertiseTimer.isTimeUp()){
 		return true;
+	}else{
+		return false;
 	}
 }
 
@@ -1160,18 +1160,16 @@ void ClientStatus::recvGWINFO(MqttsGwInfo* gwi){
 
 void ClientStatus::recvADVERTISE(MqttsAdvertise* adv){
 	if ( adv->getGwId() == _gwId ){
-		if(_advertiseTimer.isTimeUp(_advertiseDuration * 1000)){
-			_gwStat = GW_LOST;
-		}
 		_advertiseDuration = (adv->getDuration() > 60 ?
-				adv->getDuration() +  adv->getDuration() / 10 : adv->getDuration() + adv->getDuration() / 2);
-		_advertiseTimer.start();
+				adv->getDuration() +  adv->getDuration() / 10 :
+				adv->getDuration() + adv->getDuration() / 2);
+		_advertiseTimer.start(_advertiseDuration * 1000UL);
 	}
 }
 
 void ClientStatus::recvCONNACK(){
 	_clStat = CL_ACTIVE;
-	_advertiseTimer.start();
+	_advertiseTimer.start(_advertiseDuration * 1000UL);
 }
 
 void ClientStatus::recvDISCONNECT(){
@@ -1180,12 +1178,12 @@ void ClientStatus::recvDISCONNECT(){
 }
 
 void ClientStatus::setLastSendTime(){
-	_keepAliveTimer.start();
+	_keepAliveTimer.start(_keepAliveDuration * 1000UL);
 }
 
 
 void ClientStatus::recvPINGRESP(){
-    _keepAliveTimer.start();
+    _keepAliveTimer.start(_keepAliveDuration * 1000UL);
 }
 
 void ClientStatus::setModeSleep(){

@@ -337,7 +337,7 @@ public:
     bool isTimeUp(void);
     void stop();
 private:
-    Timer    _timer;
+    time_t _startTime;
     uint32_t _millis;
 };
 
