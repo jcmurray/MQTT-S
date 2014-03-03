@@ -69,7 +69,6 @@
 #define CL_ASLEEP        2
 #define CL_AWAKE         3
 
-#define MQTTS_RETRY_COUNT 3
 
 using namespace tomyClient;
 

@@ -67,7 +67,7 @@
 #define MQTTS_TIME_SEARCHGW        3
 #define MQTTS_TIME_RETRY          10
 #define MQTTS_TIME_WAIT          300     //  5min
-
+#define MQTTS_RETRY_COUNT          5
 
 #define MQTTS_MAX_TOPICS         10
 #define MQTTS_MAX_PACKET_LENGTH  60
