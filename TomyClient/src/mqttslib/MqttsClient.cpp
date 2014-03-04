@@ -312,12 +312,6 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
 	}
 	requestSendMsg((MqttsMessage*)&mqttsMsg);
 	int rc = exec();
-/*
-	if( rc == MQTTS_ERR_INVALID_TOPICID){
-		registerTopic(topic);
-		rc = exec();
-	}
-*/
 	return rc;
 }
 
@@ -756,36 +750,25 @@ int MqttsClient::exec(){
     while(true){
         rc = sendRecvMsg();
 
-		if ((rc == MQTTS_ERR_NO_ERROR) && getMsgRequestCount() == 0 ){
-
-		}else if(rc == MQTTS_ERR_NO_TOPICID){
-
-		}else if(rc == MQTTS_ERR_INVALID_TOPICID){
-
-		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_PUBLISH ){
-			clearMsgRequest();
-			_clientStatus.recvDISCONNECT();
-
-		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_REGISTER){
-			_clientStatus.recvDISCONNECT();
-			clearMsgRequest();
-
-		}else if (rc == MQTTS_ERR_RETRY_OVER &&
-			(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC || getMsgRequestType() == MQTTS_TYPE_WILLMSG) ){
-			clearMsgRequest();
-			_clientStatus.recvDISCONNECT();
-
-		}else if (rc == MQTTS_ERR_RETRY_OVER &&
-				(getMsgRequestType() == MQTTS_TYPE_CONNECT || getMsgRequestType() == MQTTS_TYPE_PINGREQ)){
-			clearMsgRequest();
-			_clientStatus.init();
-
-		}else if (rc == MQTTS_ERR_RETRY_OVER && getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
-			clearMsgRequest();
-			_clientStatus.init();
-			rc = MQTTS_ERR_REBOOT_REQUIRED;
-
-		}else{
+        if (rc == MQTTS_ERR_RETRY_OVER){
+			if(getMsgRequestType() == MQTTS_TYPE_WILLTOPIC  ||
+				 getMsgRequestType() == MQTTS_TYPE_WILLMSG   ||
+				 getMsgRequestType() == MQTTS_TYPE_PINGREQ   ||
+				 getMsgRequestType() == MQTTS_TYPE_PUBLISH   ||
+				 getMsgRequestType() == MQTTS_TYPE_REGISTER  ||
+				 getMsgRequestType() == MQTTS_TYPE_SUBSCRIBE ||
+				 getMsgRequestType() == MQTTS_TYPE_UNSUBSCRIBE){
+				clearMsgRequest();
+				_clientStatus.recvDISCONNECT();
+			}else if (getMsgRequestType() == MQTTS_TYPE_CONNECT){
+				clearMsgRequest();
+				_clientStatus.init();
+			}else if (getMsgRequestType() == MQTTS_TYPE_SEARCHGW){
+				clearMsgRequest();
+				_clientStatus.init();
+				rc = MQTTS_ERR_REBOOT_REQUIRED;
+			}
+		}else if(rc != MQTTS_ERR_NO_ERROR){
 			continue;
 		}
 		break;
