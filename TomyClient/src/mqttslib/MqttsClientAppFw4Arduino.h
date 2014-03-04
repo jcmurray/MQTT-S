@@ -102,7 +102,7 @@ public:
 	void refleshWdtCallbackTable();
 	void setup(const char* clientId, uint16_t baudrate);
 	void begin(long baudrate);
-#if	ARDUINO < 100
+#if defined(UBRR1H)
 	void begin(long baudrate, int serialPortNum);
 #endif
 	void init(const char* clientNameId);

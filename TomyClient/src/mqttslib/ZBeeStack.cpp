@@ -227,7 +227,7 @@ void SerialPort::begin(long baudrate){
   _serialDev = (Stream*) &Serial;
 }
 
-#if ARDUINO < 100
+#if defined(UBRR1H)
 void SerialPort::begin(long baudrate, int serialPortNum){ //Port num overload.
   if (serialPortNum == 0){
     Serial.begin(baudrate);

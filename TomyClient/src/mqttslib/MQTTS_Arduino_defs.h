@@ -2,6 +2,7 @@
 #define  MQTTS_ARDUINO_DEFS_H_
 
 #ifdef ARDUINO
+
 /*=================================
  *    Debug Condition
  ==================================*/
@@ -34,7 +35,6 @@
 #define D_MQTTW(...)
 #define D_MQTTF(...)
 #endif
-
 
 #endif /* ARDUINO */
 #endif /* MQTTS_ARDUINO_DEFS_H_*/

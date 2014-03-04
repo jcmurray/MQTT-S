@@ -143,7 +143,7 @@ public:
 
   #ifdef ARDUINO
     void begin(long baudrate);
-    #if ARDUINO < 100
+	#if defined(UBRR1H)
         void begin(long baudrate, int serialPortNum);
     #endif
   #else
@@ -172,7 +172,7 @@ public:
     int  publish(MQString* topic, const char* data, int dataLength);
     int  publish(MQString* topic, MQString* data);
     int  publish(uint16_t predifinedId,  const char* data, int dataLength);
-    int  registerTopic(MQString* topic);
+    int  registerTopic(MQString* topic, bool pry = false);
     int  subscribe(MQString* topic, TopicCallback callback);
     int  subscribe(uint16_t predefinedId, TopicCallback callback);
     int  unsubscribe(MQString* topic);

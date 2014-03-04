@@ -746,6 +746,7 @@ MqttsPublish::MqttsPublish(){
     setType(MQTTS_TYPE_PUBLISH);
     allocateBody();
     _topicId = 0;
+    _topic = 0;
     _msgId = 0;
     _flags = 0;
 }

@@ -111,10 +111,9 @@ MqttsClient::~MqttsClient(){
 void MqttsClient::begin(long baudrate){
         _sp->begin(baudrate);
 }
-#if ARDUINO < 100
+#if defined(UBRR1H)
 void MqttsClient::begin(long baudrate, int serialPortNum){
         _sp->begin(baudrate, serialPortNum);
-
 }
 #endif
 #endif /* ARDUINO */
@@ -270,12 +269,16 @@ void MqttsClient::copyMsg(MqttsMessage* msg, ZBResponse* recvMsg){
  =========================================*/
 
 /*--------- REGISTER ------*/
-int MqttsClient::registerTopic(MQString* topic){
+int MqttsClient::registerTopic(MQString* topic, bool pry){
     MqttsRegister mqttsMsg = MqttsRegister();
     mqttsMsg.setTopicName(topic);
     mqttsMsg.setMsgId(getNextMsgId());
     _topics.addTopic(topic);
-    requestSendMsg((MqttsMessage*)&mqttsMsg);
+    if(pry){
+    	requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
+    }else{
+    	requestSendMsg((MqttsMessage*)&mqttsMsg);
+    }
     return exec();
 }
 
@@ -312,6 +315,9 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
 	}
 	requestSendMsg((MqttsMessage*)&mqttsMsg);
 	int rc = exec();
+	if (rc == MQTTS_ERR_INVALID_TOPICID){
+		rc = registerTopic(topic, true);
+	}
 	return rc;
 }
 
@@ -926,7 +932,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
 
             /*----- Read response  ----*/
             if(_zbee->readPacket() == MQTTS_ERR_INVALID_TOPICID){
-            	clearMsgRequest();
+            	//clearMsgRequest();
             	return MQTTS_ERR_INVALID_TOPICID;
             }
 

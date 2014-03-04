@@ -209,7 +209,7 @@ void MqttsClientApplication::wakeupXB(){
 }
 
 void MqttsClientApplication::sleepApp(){
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    set_sleep_mode(SLEEP_MODE_PWR_SAVE);
     wdt_reset();
     MQwatchdogEnable();
     sleep_enable();
@@ -226,7 +226,7 @@ void MqttsClientApplication::begin(long baudrate){
     _mqtts.begin(baudrate);
 }
 
-#if ARDUINO < 100
+#if defined(UBRR1H)
 void MqttsClientApplication::begin(long baudrate, int serialPortNum){
     _mqtts.begin(baudrate, serialPortNum);
 }
