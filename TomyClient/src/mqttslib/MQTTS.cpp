@@ -201,13 +201,11 @@ void MQString::writeBuf(uint8_t* buf){
     }else if (_constStr){
         memcpy(buf, _constStr, strlen(_constStr));
     }
-    //setUint16(buf, _length);
 }
 
 void MQString::readBuf(uint8_t* buf){
     _str = NULL;
     _constStr = (const char*)buf;
-    //_length = getUint16(buf);
 }
 
 uint8_t MQString::getChar(uint8_t index){
@@ -292,7 +290,7 @@ bool MqttsMessage::allocateBody(){
         if (_msgBuff){
               free(_msgBuff);
         }
-        _msgBuff = (uint8_t*)calloc(_length, sizeof(uint8_t));
+        _msgBuff = (uint8_t*)calloc(_length + 1, sizeof(uint8_t));
         if ( _msgBuff){
             _msgBuff[0] = _length;
             _msgBuff[1] = _type;
@@ -1254,7 +1252,7 @@ uint16_t Topics::getTopicId(MQString* topic){
 
 Topic* Topics::getTopic(MQString* topic) {
     for (int i = 0; i < _elmCnt; i++) {
-        if ( topic->comp(_topics[i].getTopicName()) == 0) {
+		if ( topic->comp(_topics[i].getTopicName()) == 0) {
             return &_topics[i];
         }
     }

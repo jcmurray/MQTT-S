@@ -129,8 +129,6 @@ void MqttsClient::begin(long baudrate){
 #endif  /* LINUX */
 
 
-
-
 bool MqttsClient::init(const char* clientNameId){
     _clientId->copy(clientNameId);
     MQString* pre1 = new MQString(MQTTS_TOPIC_PREDEFINED_TIME);
@@ -250,7 +248,7 @@ void MqttsClient::delayTime(uint16_t maxTime){
     XTimer delayTimer;
     delayTimer.start(tm);
     while(!delayTimer.isTimeUp()){
-        _zbee->readPacket();
+       // _zbee->readPacket();
     }
 }
 
@@ -264,16 +262,12 @@ void MqttsClient::copyMsg(MqttsMessage* msg, ZBResponse* recvMsg){
  =========================================*/
 
 /*--------- REGISTER ------*/
-int MqttsClient::registerTopic(MQString* topic, bool pry){
+int MqttsClient::registerTopic(MQString* topic){
     MqttsRegister mqttsMsg = MqttsRegister();
     mqttsMsg.setTopicName(topic);
     mqttsMsg.setMsgId(getNextMsgId());
     _topics.addTopic(topic);
-    if(pry){
-    	requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
-    }else{
-    	requestSendMsg((MqttsMessage*)&mqttsMsg);
-    }
+	requestSendMsg((MqttsMessage*)&mqttsMsg);
     return exec();
 }
 
@@ -296,10 +290,10 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
 		_topics.setTopicId(topic, topicId);
 		mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_SHORT);
 		mqttsMsg.setTopic(topic);
-	}else if(topicId == 0){
+	}/*else if(topicId == 0){
 		registerTopic(topic);
 		return  exec();
-	}else{
+	}*/else{
 		mqttsMsg.setFlags(_clientFlg | MQTTS_TOPIC_TYPE_NORMAL);
 		mqttsMsg.setTopicId(topicId);
 	}
@@ -311,7 +305,7 @@ int MqttsClient::publish(MQString* topic, const char* data, int dataLength){
 	requestSendMsg((MqttsMessage*)&mqttsMsg);
 	int rc = exec();
 	if (rc == MQTTS_ERR_INVALID_TOPICID){
-		rc = registerTopic(topic, true);
+		registerTopic(topic);
 	}
 	return rc;
 }
@@ -438,6 +432,7 @@ int MqttsClient::disconnect(uint16_t duration){
 int  MqttsClient::searchGw(uint8_t radius){
     MqttsSearchGw mqttsMsg = MqttsSearchGw();
     mqttsMsg.setRadius(radius);
+    delayTime(MQTTS_TIME_SEARCHGW);
     return requestPrioritySendMsg((MqttsMessage*)&mqttsMsg);
 }
 
@@ -769,7 +764,10 @@ int MqttsClient::exec(){
 				_clientStatus.init();
 				rc = MQTTS_ERR_REBOOT_REQUIRED;
 			}
-		}else if(rc != MQTTS_ERR_NO_ERROR){
+		}else if(rc == MQTTS_ERR_NO_ERROR ||
+				  rc == MQTTS_ERR_INVALID_TOPICID){
+			// NOP
+		}else{
 			continue;
 		}
 		break;
@@ -796,8 +794,6 @@ int MqttsClient::sendRecvMsg(){
 		if (getMsgRequestType() != MQTTS_TYPE_SEARCHGW){
 			searchGw(ZB_BROADCAST_RADIUS_MAX_HOPS);
 		}
-		delayTime(MQTTS_TIME_SEARCHGW);
-
 		_clientStatus.sendSEARCHGW();
 		rc = broadcast(MQTTS_TIME_RETRY);
 		if ( rc != MQTTS_ERR_NO_ERROR){
@@ -927,7 +923,7 @@ int MqttsClient::unicast(uint16_t packetReadTimeout){
 
             /*----- Read response  ----*/
             if(_zbee->readPacket() == MQTTS_ERR_INVALID_TOPICID){
-            	//clearMsgRequest();
+            	clearMsgRequest();
             	return MQTTS_ERR_INVALID_TOPICID;
             }
 

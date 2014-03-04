@@ -169,7 +169,7 @@ public:
     int  publish(MQString* topic, const char* data, int dataLength);
     int  publish(MQString* topic, MQString* data);
     int  publish(uint16_t predifinedId,  const char* data, int dataLength);
-    int  registerTopic(MQString* topic, bool pry = false);
+    int  registerTopic(MQString* topic);
     int  subscribe(MQString* topic, TopicCallback callback);
     int  subscribe(uint16_t predefinedId, TopicCallback callback);
     int  unsubscribe(MQString* topic);

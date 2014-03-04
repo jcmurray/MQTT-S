@@ -69,6 +69,7 @@ int main(int argc, char **argv){
     mqtts.setKeepAlive(60);
 
     MQString *topic1 = new MQString("dev/indicator");
+    MQString *topic2 = new MQString("dev/test");
 
 
     MQString* on = new MQString("on");
@@ -79,6 +80,7 @@ int main(int argc, char **argv){
     int rc;
 boot:
 	mqtts.registerTopic(topic1);
+	mqtts.registerTopic(topic2);
 
 	//mqtts.subscribe(topic1, fnTp1);
 
