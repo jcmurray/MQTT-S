@@ -108,14 +108,9 @@ MqttsClient::~MqttsClient(){
 }
 
 #ifdef ARDUINO
-void MqttsClient::begin(long baudrate){
-        _sp->begin(baudrate);
-}
-#if defined(UBRR1H)
 void MqttsClient::begin(long baudrate, int serialPortNum){
         _sp->begin(baudrate, serialPortNum);
 }
-#endif
 #endif /* ARDUINO */
 
 #ifdef MBED

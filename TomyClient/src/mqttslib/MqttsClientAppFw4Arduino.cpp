@@ -222,15 +222,9 @@ void MqttsClientApplication::setSleepMode(uint8_t sleepMode){
     _sleepMode = sleepMode;
 }
 
-void MqttsClientApplication::begin(long baudrate){
-    _mqtts.begin(baudrate);
-}
-
-#if defined(UBRR1H)
 void MqttsClientApplication::begin(long baudrate, int serialPortNum){
     _mqtts.begin(baudrate, serialPortNum);
 }
-#endif
 
 void MqttsClientApplication::init(const char* clientNameId){
     _mqtts.init(clientNameId);

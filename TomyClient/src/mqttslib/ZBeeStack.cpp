@@ -222,31 +222,30 @@ SerialPort::SerialPort(){
   _serialDev = NULL;
 }
 
-void SerialPort::begin(long baudrate){
-  Serial.begin(baudrate);
-  _serialDev = (Stream*) &Serial;
-}
-
-#if defined(UBRR1H)
 void SerialPort::begin(long baudrate, int serialPortNum){ //Port num overload.
   if (serialPortNum == 0){
     Serial.begin(baudrate);
     _serialDev = (Stream*) &Serial;
   }
+  #if defined(UBRR1H)
   else if (serialPortNum == 1){
     Serial1.begin(baudrate);
     _serialDev = (Stream*) &Serial1;
   }
+  #endif
+  #if defined(UBRR2H)
   else if (serialPortNum == 2){
     Serial2.begin(baudrate);
     _serialDev = (Stream*) &Serial2;
   }
+  #endif
+  #if defined(UBRR3H)
   else if (serialPortNum == 3){
     Serial3.begin(baudrate);
     _serialDev = (Stream*) &Serial3;
   }
+  #endif
 }
-#endif
 
 bool SerialPort::checkRecvBuf(){
     return _serialDev->available() > 0;

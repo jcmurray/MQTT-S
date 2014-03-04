@@ -244,10 +244,7 @@ private:
 class SerialPort{
 public:
     SerialPort( );
-    void begin(long baudrate);
-#if defined(UBRR1H)
-    void begin(long baudrate, int serialPortNum);
-#endif
+    void begin(long baudrate, int serialPortNum = 0);
     bool send(unsigned char b);
     bool recv(unsigned char* b);
     void flush();

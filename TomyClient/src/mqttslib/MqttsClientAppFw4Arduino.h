@@ -101,10 +101,7 @@ public:
 	void registerWdtCallback(long sec, int (*callback)(void));
 	void refleshWdtCallbackTable();
 	void setup(const char* clientId, uint16_t baudrate);
-	void begin(long baudrate);
-#if defined(UBRR1H)
-	void begin(long baudrate, int serialPortNum);
-#endif
+	void begin(long baudrate, int serialPortNum = 0);
 	void init(const char* clientNameId);
 	void setKeepAlive(uint16_t msec);
 	void setQos(uint8_t level);

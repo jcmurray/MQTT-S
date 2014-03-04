@@ -142,10 +142,7 @@ public:
     ~MqttsClient();
 
   #ifdef ARDUINO
-    void begin(long baudrate);
-	#if defined(UBRR1H)
-        void begin(long baudrate, int serialPortNum);
-    #endif
+    void begin(long baudrate, int serialPortNum = 0);
   #else
     #ifdef MBED
         void begin(long baudrate);
