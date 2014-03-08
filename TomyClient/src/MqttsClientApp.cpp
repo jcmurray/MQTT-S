@@ -60,7 +60,7 @@ int main(int argc, char **argv){
     MqttsClient mqtts = MqttsClient();
 
     mqtts.init(argv[1]);
-    mqtts.begin(argv[2], B38400);
+    mqtts.begin(argv[2], B9600);
 
     mqtts.setQos(1);
     mqtts.setClean(true);

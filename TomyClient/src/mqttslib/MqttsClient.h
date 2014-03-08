@@ -152,7 +152,7 @@ public:
   #endif /* ARDUINO */
 
     Topics* getTopics();
-    bool init(const char* clientIdName);
+    bool init(const char* clientIdName = "");
     void setKeepAlive(uint16_t sec);
     void setWillTopic(MQString* topic);
     void setWillMessage(MQString* msg);

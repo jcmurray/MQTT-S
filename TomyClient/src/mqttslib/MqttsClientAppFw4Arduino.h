@@ -102,7 +102,7 @@ public:
 	void refleshWdtCallbackTable();
 	void setup(const char* clientId, uint16_t baudrate);
 	void begin(long baudrate, int serialPortNum = 0);
-	void init(const char* clientNameId);
+	void init(const char* clientNameId = "");
 	void setKeepAlive(uint16_t msec);
 	void setQos(uint8_t level);
 	void setWillTopic(MQString* willTopic);
