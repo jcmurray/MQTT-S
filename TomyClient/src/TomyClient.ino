@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  *
  *  Created on: 2013/11/30
-      Modified: 2013/12/12
+      Modified: 2014/03/9
  *      Author: Tomoaki YAMAGUCHI
- *     Version: 1.0.0
+ *     Version: 1.2.0
  *
  */
 
@@ -59,6 +59,7 @@ int  blinkIndicator(MqttsPublish* msg){
 
 /*----------- Create Topics -----------------*/
 MQString* tp1 = new MQString("dev/indicator");
+MQString* tp2 = new MQString("dev/test");
 
 /*----------  Functions for WDT interuption -------*/
 
@@ -69,6 +70,10 @@ int wdtFunc0(){
   return app.publish(MQTTS_TOPICID_PREDEFINED_TIME, (const char*)payload, 4);
 }
 
+
+int wdtFunc1(){
+  return app.publish(tp2,"67890", 5);
+}
 
 /*---------- Function for INT0 interuption --------*/
 void intFunc(){
@@ -85,20 +90,21 @@ void setup(){
   app.registerInt0Callback(intFunc);
 
 /*-- Register Callbacks for WDT (Sec、callback)  --*/
-  app.registerWdtCallback(900,wdtFunc0);
+  app.registerWdtCallback(10,wdtFunc1);
 
   app.begin(9600);         // Set XBee Serial baudrate
-  app.init("Node-02");      // Initialize application
+  app.init("node01");      // Initialize application
   app.setQos(1);            // Set QOS level 1
 
   app.setKeepAlive(300);            // Set PINGREQ interval
-  app.setSleepMode(MQ_MODE_NOSLEEP);
+  //app.setZBPinHibernate();    // ZBee is EndDevice PIN-Hibernate
+  //app.setSleepMode();         // Sleep ZBee and Arduino 
   app.setClean(true);
-  app.blinkIndicator(1000);  
   
+  app.registerTopic(tp2);
   
   app.subscribe(MQTTS_TOPICID_PREDEFINED_TIME, setTime); // Set  date callback
-  app.subscribe(tp1, blinkIndicator); 
+  //app.subscribe(tp1, blinkIndicator); 
   
   app.startWdt();          // Start Watch dog timer interruption
 }

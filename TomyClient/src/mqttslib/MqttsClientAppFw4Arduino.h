@@ -46,24 +46,22 @@
 
 #define MQ_LED_PIN  13
 #define MQ_INT0_PIN 2
-#define MQ_SLEEP_PIN 3  // Connect to XBee DTR for hibernation mode
+#define MQ_SLEEP_PIN 4  // Connect to XBee DTR for hibernation mode
 #define MQ_ERROR_RECOVERY_DURATION_ON 8
-#define MQ_WAKEUP  0
-#define MQ_SLEEP   1
 #define MQ_ON      1
 #define MQ_OFF     0
+
+#define ZB_ROUTER_DEVICE  0
+#define ZB_PIN_HIBERNATE 1
+
 
 #define MQ_WDT_ERR   (B01100000)  // Error Indication time
 
 //#define MQ_WDT_TIME (B01000111)   // 2 Sec
-
-//#define MQ_WDT_TIME (B01100000)     // 4 Sec
+//#define MQ_WDT_TIME (B01100000)   // 4 Sec
  
 #define MQ_WDT_TIME (B01100001)   // 8 Sec
 
-
-#define MQ_MODE_NOSLEEP 0
-#define MQ_MODE_SLEEP   1
 
 typedef struct {
 	long prevTime;
@@ -100,7 +98,6 @@ public:
 	void registerInt0Callback(void (*callback)());
 	void registerWdtCallback(long sec, int (*callback)(void));
 	void refleshWdtCallbackTable();
-	void setup(const char* clientId, uint16_t baudrate);
 	void begin(long baudrate, int serialPortNum = 0);
 	void init(const char* clientNameId = "");
 	void setKeepAlive(uint16_t msec);
@@ -110,13 +107,14 @@ public:
 	void setRetain(bool retain);
 	void setClean(bool clean);
 	void setClientId(MQString* id);
+	void setZBPinHibernate();
 	void sleepApp();
 	void blinkIndicator(int msec);
 	void indicatorOn();
 	void indicatorOff();
 	void sleepXB();
 	void wakeupXB();
-	void setSleepMode(uint8_t sleepMode);
+	void setSleepMode();
 	
 	int registerTopic(MQString* topic);
 	int publish(MQString* topic, const char* data, int dataLength);
@@ -142,7 +140,8 @@ private:
 	bool _txFlag;
 	long    _unixTime;
 	uint32_t _epochTime;
-	uint8_t _sleepMode;
+	bool  _sleepFlg;
+	uint8_t _deviceType;
 
 	WdTimer _wdTimer;
 

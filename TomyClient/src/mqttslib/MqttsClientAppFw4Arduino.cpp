@@ -30,12 +30,13 @@
  *     Version: 1.0.0
  *
  */
- 
+
 #ifdef ARDUINO
  
 #include <MQTTS_Arduino_defs.h>
 #include <MqttsClientAppFw4Arduino.h>
-
+#include <avr/power.h>
+#include <avr/sleep.h>
 
 using namespace std;
 using namespace tomyClient;
@@ -85,6 +86,7 @@ void MQwatchdogEnable(){  // Turn on WDT
 	wdt_reset();
 	WDTCSR |= B00011000;   // WDCE:on, WDE:on
 	WDTCSR = MQ_WDT_TIME;
+	MQ_wdtStat = WAIT;
 	sei();
 }
 
@@ -105,44 +107,86 @@ void (*resetArduino)(void) = 0;
 =========================================*/
 MqttsClientApplication::MqttsClientApplication(){
     _txFlag = false;
-    //_wdtCnt = 0;
     _intHandler = IntHandleDummy;
     _unixTime = 0;
     _epochTime = 0;
-    _sleepMode = MQ_MODE_NOSLEEP;
-
+    _sleepFlg = false;
+    _deviceType = ZB_ROUTER_DEVICE;
 }
 
 MqttsClientApplication::~MqttsClientApplication(){
 
 }
 
-void MqttsClientApplication::setup(const char* clientId, uint16_t baurate){
-      _mqtts.begin(baurate);
-      _mqtts.init(clientId);
-      pinMode(MQ_INT0_PIN,INPUT_PULLUP);
-      pinMode(MQ_SLEEP_PIN, OUTPUT);
-      //sleepXB();
-      wakeupXB();
-      MQ_intStat = WAIT;
-      MQ_wdtStat = WAIT;
-      setInterrupt();
+
+void MqttsClientApplication::startWdt(){
+    _wdTimer.start();
+}
+
+void MqttsClientApplication::stopWdt(){
+    _wdTimer.stop();
+}
+
+/*------------ Client execution --------------*/
+int MqttsClientApplication::exec(){
+	wakeupXB();
+	checkInterupt();   // WDT routine was executed here
+
+	int rc = _mqtts.exec();
+	if(rc == MQTTS_ERR_NO_ERROR){
+		sleepXB();
+		sleepApp();
+	}
+	return rc;
 }
 
 
-void MqttsClientApplication::registerInt0Callback(void (*callback)()){
-    _intHandler = callback;
+/*----------- Sleep related functions ------------*/
+void MqttsClientApplication::sleepApp(){
+	if(_deviceType == ZB_PIN_HIBERNATE && _sleepFlg){
+		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
+		MQwatchdogEnable();
+		sleep_enable();
+		MQ_wdtStat = WAIT;
+		sleep_mode();      // waiting WDT interrupt
+		sleep_disable();
+	}
 }
 
-
-void MqttsClientApplication::registerWdtCallback(long sec, int (*callback)()){
-    _wdTimer.registerCallback(sec, callback);
+void MqttsClientApplication::sleepXB(){
+	if(_deviceType == ZB_PIN_HIBERNATE && _sleepFlg){
+		pinMode(MQ_SLEEP_PIN, INPUT);
+		digitalWrite(MQ_SLEEP_PIN, HIGH);
+		indicatorOn();
+	}
 }
 
-void MqttsClientApplication::refleshWdtCallbackTable(){
-  _wdTimer.refleshRegisterTable();
+void MqttsClientApplication::wakeupXB(){
+	if(_deviceType == ZB_PIN_HIBERNATE){
+		pinMode(MQ_SLEEP_PIN, OUTPUT);
+		digitalWrite(MQ_SLEEP_PIN, LOW);
+		indicatorOff();
+	}
 }
 
+void MqttsClientApplication::setSleepMode(){
+	if(_deviceType == ZB_PIN_HIBERNATE){
+		_sleepFlg = true;
+		MQ_intStat = WAIT;
+		MQ_wdtStat = WAIT;
+		setInterrupt();
+	}else{
+		_sleepFlg = false;
+	}
+}
+
+void MqttsClientApplication::setZBPinHibernate(){
+	_deviceType = ZB_PIN_HIBERNATE;
+	pinMode(MQ_INT0_PIN,INPUT_PULLUP);
+	wakeupXB();
+}
+
+/*-------------- Interrupt related functions ------*/
 void MqttsClientApplication::checkInterupt(){
 
     // interrupt Event
@@ -151,22 +195,13 @@ void MqttsClientApplication::checkInterupt(){
         interruptHandler();
         setInterrupt();
     }
-
     // WDT event
     if (MQ_wdtStat == INT_WDT){
+    	D_MQTTLN("WDT wakeup");  //DEBUG
         _wdTimer.wakeUp();    // Check Callback's intervals & execute
-        if (_sleepMode == MQ_MODE_SLEEP){
-            D_MQTTLN("sleep");
-            sleepXB();
-            sleepApp();
-            wakeupXB();
-            D_MQTTLN("wakeup");
-        }
-        wakeupXB();
-        _wdTimer.start();     // Restart WDT
+        _wdTimer.start();     // WDT restart
     }
 }
-
 
 void MqttsClientApplication::interruptHandler(){
     wakeupXB();
@@ -176,52 +211,16 @@ void MqttsClientApplication::interruptHandler(){
 
 void MqttsClientApplication::setInterrupt(){
     if (MQ_intStat == INT0_WAIT_HL){
-            while(digitalRead(MQ_INT0_PIN) == 0){
-                    // wait LL to HL
-            }
+		while(digitalRead(MQ_INT0_PIN) == 0){
+				// wait LL to HL
+		}
     }
     MQ_intStat = WAIT;
     attachInterrupt(0,MQInt0,LOW);
 }
 
 
-void MqttsClientApplication::indicatorOn(){
-    digitalWrite(MQ_LED_PIN,MQ_ON);
-}
-
-void MqttsClientApplication::indicatorOff(){
-    digitalWrite(MQ_LED_PIN,MQ_OFF);
-}
-
-void MqttsClientApplication::blinkIndicator(int msec){
-    digitalWrite(MQ_LED_PIN,MQ_ON);
-    delay(msec);
-    digitalWrite(MQ_LED_PIN,MQ_OFF);
-}
-
-void MqttsClientApplication::sleepXB(){
-    digitalWrite(MQ_SLEEP_PIN, MQ_SLEEP);
-}
-
-void MqttsClientApplication::wakeupXB(){
-    digitalWrite(MQ_SLEEP_PIN, MQ_WAKEUP);
-    blinkIndicator(1);
-}
-
-void MqttsClientApplication::sleepApp(){
-    set_sleep_mode(SLEEP_MODE_PWR_SAVE);
-    wdt_reset();
-    MQwatchdogEnable();
-    sleep_enable();
-    MQ_wdtStat = WAIT;
-    sleep_mode();
-    sleep_disable();
-}
-
-void MqttsClientApplication::setSleepMode(uint8_t sleepMode){
-    _sleepMode = sleepMode;
-}
-
+/*--------------------  MQTT-SN functions ---------------*/
 void MqttsClientApplication::begin(long baudrate, int serialPortNum){
     _mqtts.begin(baudrate, serialPortNum);
 }
@@ -230,7 +229,6 @@ void MqttsClientApplication::init(const char* clientNameId){
     _mqtts.init(clientNameId);
 }
 	
-
 int MqttsClientApplication::registerTopic(MQString* topic){
     return _mqtts.registerTopic(topic);
 }
@@ -283,20 +281,7 @@ void MqttsClientApplication::setClean(bool clean){
 }
 
 
-void MqttsClientApplication::startWdt(){
-    _wdTimer.start();
-}
-
-void MqttsClientApplication::stopWdt(){
-    _wdTimer.stop();
-}
-
-int MqttsClientApplication::exec(){
-	int rc = _mqtts.exec();
-	checkInterupt();
-	return rc;
-}
-
+/*------------- UTC functions -------------*/
 void MqttsClientApplication::setUnixTime(MqttsPublish* msg){
     _epochTime = millis();
     _unixTime = getLong(msg->getData());
@@ -315,6 +300,36 @@ void MqttsClientApplication::reboot(){
 	resetArduino();
 }
 
+/*-------------- Indicator --------------*/
+void MqttsClientApplication::indicatorOn(){
+    digitalWrite(MQ_LED_PIN,MQ_ON);
+}
+
+void MqttsClientApplication::indicatorOff(){
+    digitalWrite(MQ_LED_PIN,MQ_OFF);
+}
+
+void MqttsClientApplication::blinkIndicator(int msec){
+    digitalWrite(MQ_LED_PIN,MQ_ON);
+    delay(msec);
+    digitalWrite(MQ_LED_PIN,MQ_OFF);
+}
+
+
+/*-------------- Callback related functions ---------------*/
+void MqttsClientApplication::registerInt0Callback(void (*callback)()){
+    _intHandler = callback;
+}
+
+
+void MqttsClientApplication::registerWdtCallback(long sec, int (*callback)()){
+    _wdTimer.registerCallback(sec, callback);
+}
+
+void MqttsClientApplication::refleshWdtCallbackTable(){
+  _wdTimer.refleshRegisterTable();
+}
+
 /*======================================
                Class WdTimer
 ========================================*/
@@ -325,13 +340,7 @@ WdTimer::WdTimer(void) {
 }
 
 void WdTimer::start(void) {    
-    cli();
-    MQ_wdtStat = WAIT;
-    MCUSR = 0;
-    wdt_reset();
-    WDTCSR |= B00011000;     // WDCE:ON, WDE:ON 
-    WDTCSR = MQ_WDT_TIME;    
-    sei();
+	MQwatchdogEnable();
 }
 
 
@@ -349,14 +358,14 @@ void WdTimer::stop(void){
 bool WdTimer::wakeUp(void){
     bool rcflg = false;
     for(uint8_t i = 0; i < _timerCnt; i++) {
-        if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
+        //if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
             int rc = (_timerTbls[i].callback)();
             if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
             	resetArduino();
             }
             _timerTbls[i].prevTime = theApplication->getUnixTime();
             rcflg = true;
-        }
+        //}
     }
     return rcflg;
 }
