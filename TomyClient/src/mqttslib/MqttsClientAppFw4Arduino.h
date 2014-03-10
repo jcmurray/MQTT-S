@@ -82,6 +82,7 @@ public:
 	void start(void);
 	void stop(void);
 	bool wakeUp(void);
+	bool wakeUpSleep(void);
 
 private:	
 	MQ_TimerTbl *_timerTbls;
@@ -108,12 +109,7 @@ public:
 	void setClean(bool clean);
 	void setClientId(MQString* id);
 	void setZBPinHibernate();
-	void sleepApp();
 	void blinkIndicator(int msec);
-	void indicatorOn();
-	void indicatorOff();
-	void sleepXB();
-	void wakeupXB();
 	void setSleepMode();
 	
 	int registerTopic(MQString* topic);
@@ -130,11 +126,16 @@ public:
 	void setUnixTime(MqttsPublish* msg);
 	long getUnixTime();
 	void reboot();
+	void indicatorOn();
+	void indicatorOff();
 
 private:
 	void checkInterupt();
 	void interruptHandler();
     void setInterrupt();
+	void sleepXB();
+	void wakeupXB();
+	void sleepApp();
 	
 	MqttsClient _mqtts;
 	bool _txFlag;

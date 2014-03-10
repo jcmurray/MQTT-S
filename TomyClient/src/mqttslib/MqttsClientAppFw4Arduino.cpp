@@ -195,8 +195,11 @@ void MqttsClientApplication::checkInterupt(){
     }
     // WDT event
     if (MQ_wdtStat == INT_WDT){
-    	D_MQTTLN("WDT wakeup");  //DEBUG
-        _wdTimer.wakeUp();    // Check Callback's intervals & execute
+    	if(_deviceType == ZB_PIN_HIBERNATE && _sleepFlg){
+    		_wdTimer.wakeUpSleep();    // Check Callback's intervals & execute
+    	}else{
+    		_wdTimer.wakeUp();
+    	}
         _wdTimer.start();     // WDT restart
     }
 }
@@ -354,31 +357,38 @@ void WdTimer::stop(void){
 
 
 bool WdTimer::wakeUp(void){
+   	D_MQTTLN("WDT wakeup");  //DEBUG
     bool rcflg = false;
     int rc;
-    for(uint8_t i = 0; i < _timerCnt; i++) {
-    	if(_deviceType == ZB_PIN_HIBERNATE && _sleepFlg){
-    		// ToDo Time matching. because Timer0 is invalid in SLEEP_MODE_PWR_SAVE mode
-    		rc = (_timerTbls[i].callback)();
+
+	for(uint8_t i = 0; i < _timerCnt; i++) {
+		if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
+			rc = (_timerTbls[i].callback)();
+			if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
+				resetArduino();
+			}
+			_timerTbls[i].prevTime = theApplication->getUnixTime();
+			rcflg = true;
+		}
+	}
+    return rcflg;
+}
+
+bool WdTimer::wakeUpSleep(void){
+	D_MQTTLN("WDT wakeupSleep");  //DEBUG
+	    bool rcflg = false;
+	for(uint8_t i = 0; i < _timerCnt; i++) {
+		// ToDo Time matching. because Timer0 is invalid in SLEEP_MODE_PWR_SAVE mode
+		//if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
+			int rc = (_timerTbls[i].callback)();
 			if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
 				resetArduino();
 			}
 			//_timerTbls[i].prevTime = theApplication->getUnixTime();
 			rcflg = true;
-    	}else{
-			if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
-				rc = (_timerTbls[i].callback)();
-				if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
-					resetArduino();
-				}
-				_timerTbls[i].prevTime = theApplication->getUnixTime();
-				rcflg = true;
-			}
-    	}
-    }
-    return rcflg;
+		//}
+	}
 }
-
 
 uint8_t WdTimer::registerCallback(long sec, int (*callback)(void)){
     MQ_TimerTbl *savTbl = _timerTbls;
