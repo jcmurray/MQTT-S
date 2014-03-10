@@ -157,7 +157,6 @@ void MqttsClientApplication::sleepXB(){
 	if(_deviceType == ZB_PIN_HIBERNATE && _sleepFlg){
 		pinMode(MQ_SLEEP_PIN, INPUT);
 		digitalWrite(MQ_SLEEP_PIN, HIGH);
-		indicatorOn();
 	}
 }
 
@@ -165,7 +164,6 @@ void MqttsClientApplication::wakeupXB(){
 	if(_deviceType == ZB_PIN_HIBERNATE){
 		pinMode(MQ_SLEEP_PIN, OUTPUT);
 		digitalWrite(MQ_SLEEP_PIN, LOW);
-		indicatorOff();
 	}
 }
 
@@ -357,15 +355,26 @@ void WdTimer::stop(void){
 
 bool WdTimer::wakeUp(void){
     bool rcflg = false;
+    int rc;
     for(uint8_t i = 0; i < _timerCnt; i++) {
-        //if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
-            int rc = (_timerTbls[i].callback)();
-            if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
-            	resetArduino();
-            }
-            _timerTbls[i].prevTime = theApplication->getUnixTime();
-            rcflg = true;
-        //}
+    	if(_deviceType == ZB_PIN_HIBERNATE && _sleepFlg){
+    		// ToDo Time matching. because Timer0 is invalid in SLEEP_MODE_PWR_SAVE mode
+    		rc = (_timerTbls[i].callback)();
+			if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
+				resetArduino();
+			}
+			//_timerTbls[i].prevTime = theApplication->getUnixTime();
+			rcflg = true;
+    	}else{
+			if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
+				rc = (_timerTbls[i].callback)();
+				if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
+					resetArduino();
+				}
+				_timerTbls[i].prevTime = theApplication->getUnixTime();
+				rcflg = true;
+			}
+    	}
     }
     return rcflg;
 }
