@@ -86,8 +86,8 @@ void setUint16(uint8_t* pos, uint16_t val){
     *pos = val &0xff;
 }
 
-long getLong(uint8_t* pos){
-    long val = (uint32_t(*(pos + 3)) << 24) +
+uint32_t getLong(uint8_t* pos){
+    uint32_t val = (uint32_t(*(pos + 3)) << 24) +
         (uint32_t(*(pos + 2)) << 16) +
         (uint32_t(*(pos + 1)) <<  8);
         return val += *pos;
@@ -187,20 +187,20 @@ void XTimer::start(uint32_t msec){
   _millis = msec;
 }
 
-bool XTimer::isTimeUp(){
+bool XTimer::isTimeUp(void){
   return isTimeUp(_millis);
 }
 
 bool XTimer::isTimeUp(uint32_t msec){
     struct timeval curTime;
-    long secs, usecs;
+    uint32_t secs, usecs;
     if (_startTime.tv_sec == 0){
         return false;
     }else{
         gettimeofday(&curTime, NULL);
         secs  = (curTime.tv_sec  - _startTime.tv_sec) * 1000;
         usecs = (curTime.tv_usec - _startTime.tv_usec) / 1000.0;
-        return ((secs + usecs) > (long)msec);
+        return ((secs + usecs) > (uint32_t)msec);
     }
 }
 

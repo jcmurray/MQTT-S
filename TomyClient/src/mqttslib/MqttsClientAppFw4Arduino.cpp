@@ -54,7 +54,7 @@ enum MQ_INT_STATUS MQ_wdtStat;
 	extern SoftwareSerial debug;
 #endif
 
-extern long int getLong(uint8_t* pos);
+extern uint32_t getLong(uint8_t* pos);
 
 /*-------------------------------
  * Set WDT Interrupt procedure
@@ -108,10 +108,9 @@ void (*resetArduino)(void) = 0;
 MqttsClientApplication::MqttsClientApplication(){
     _txFlag = false;
     _intHandler = IntHandleDummy;
-    _unixTime = 0;
-    _epochTime = 0;
     _sleepFlg = false;
     _deviceType = ZB_ROUTER_DEVICE;
+
 }
 
 MqttsClientApplication::~MqttsClientApplication(){
@@ -130,14 +129,15 @@ void MqttsClientApplication::stopWdt(){
 /*------------ Client execution --------------*/
 int MqttsClientApplication::exec(){
 	wakeupXB();
-	checkInterupt();   // WDT routine was executed here
+	_mqtts.exec();
+	checkInterupt();   // WDT routine was executed
 
 	int rc = _mqtts.exec();
 	if(rc == MQTTS_ERR_NO_ERROR){
 		sleepXB();
 		sleepApp();
 	}
-	return rc;
+	return 0;
 }
 
 
@@ -150,6 +150,7 @@ void MqttsClientApplication::sleepApp(){
 		MQ_wdtStat = WAIT;
 		sleep_mode();      // waiting WDT interrupt
 		sleep_disable();
+		_wdTimer.setStopTimeDuration(MQ_WDT_TIME_MSEC);
 	}
 }
 
@@ -195,11 +196,7 @@ void MqttsClientApplication::checkInterupt(){
     }
     // WDT event
     if (MQ_wdtStat == INT_WDT){
-    	if(_deviceType == ZB_PIN_HIBERNATE && _sleepFlg){
-    		_wdTimer.wakeUpSleep();    // Check Callback's intervals & execute
-    	}else{
-    		_wdTimer.wakeUp();
-    	}
+		_wdTimer.wakeUp();
         _wdTimer.start();     // WDT restart
     }
 }
@@ -284,19 +281,14 @@ void MqttsClientApplication::setClean(bool clean){
 
 /*------------- UTC functions -------------*/
 void MqttsClientApplication::setUnixTime(MqttsPublish* msg){
-    _epochTime = millis();
-    _unixTime = getLong(msg->getData());
+    _wdTimer.setUnixTime(msg);
 }
 
-long MqttsClientApplication::getUnixTime(){
-    uint32_t tm = millis();
-    if (_epochTime > tm ){
-        return _unixTime + long(0xffffffff - tm - _epochTime) / 1000;
-    }else{
-        return _unixTime + long(tm - _epochTime) / 1000;
-    }
+uint32_t MqttsClientApplication::getUnixTime(){
+	return _wdTimer.getUnixTime();
 }
 
+/*------------ reboot ---------------*/
 void MqttsClientApplication::reboot(){
 	resetArduino();
 }
@@ -337,6 +329,9 @@ void MqttsClientApplication::refleshWdtCallbackTable(){
 WdTimer::WdTimer(void) {
     _timerTbls = 0;
     _timerCnt = 0;
+    _unixTime = 0;
+    _epochTime = 0;
+    _timerStopTimeAccum = 0;
 
 }
 
@@ -357,40 +352,23 @@ void WdTimer::stop(void){
 
 
 bool WdTimer::wakeUp(void){
-   	D_MQTTLN("WDT wakeup");  //DEBUG
     bool rcflg = false;
     int rc;
 
 	for(uint8_t i = 0; i < _timerCnt; i++) {
-		if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
+		if ((_timerTbls[i].prevTime + _timerTbls[i].interval < getUnixTime())){
 			rc = (_timerTbls[i].callback)();
 			if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
 				resetArduino();
 			}
-			_timerTbls[i].prevTime = theApplication->getUnixTime();
+			_timerTbls[i].prevTime = getUnixTime();
 			rcflg = true;
 		}
 	}
     return rcflg;
 }
 
-bool WdTimer::wakeUpSleep(void){
-	D_MQTTLN("WDT wakeupSleep");  //DEBUG
-	    bool rcflg = false;
-	for(uint8_t i = 0; i < _timerCnt; i++) {
-		// ToDo Time matching. because Timer0 is invalid in SLEEP_MODE_PWR_SAVE mode
-		//if ((_timerTbls[i].prevTime + _timerTbls[i].interval < theApplication->getUnixTime())){
-			int rc = (_timerTbls[i].callback)();
-			if(rc == MQTTS_ERR_REBOOT_REQUIRED || rc == MQTTS_ERR_INVALID_TOPICID){
-				resetArduino();
-			}
-			//_timerTbls[i].prevTime = theApplication->getUnixTime();
-			rcflg = true;
-		//}
-	}
-}
-
-uint8_t WdTimer::registerCallback(long sec, int (*callback)(void)){
+uint8_t WdTimer::registerCallback(uint32_t sec, int (*callback)(void)){
     MQ_TimerTbl *savTbl = _timerTbls;
     MQ_TimerTbl *newTbl = (MQ_TimerTbl*)calloc(_timerCnt + 1,sizeof(MQ_TimerTbl));
 
@@ -403,7 +381,7 @@ uint8_t WdTimer::registerCallback(long sec, int (*callback)(void)){
         }
         free(savTbl);
 
-        _timerTbls[_timerCnt].prevTime = theApplication->getUnixTime();
+        _timerTbls[_timerCnt].prevTime = getUnixTime();
         _timerTbls[_timerCnt].interval = sec;
         _timerTbls[_timerCnt].callback = callback;
         _timerCnt++;
@@ -414,9 +392,27 @@ uint8_t WdTimer::registerCallback(long sec, int (*callback)(void)){
 
 void WdTimer::refleshRegisterTable(){
     for(uint8_t i = 0; i < _timerCnt; i++) {
-        _timerTbls[i].prevTime = theApplication->getUnixTime();
+        _timerTbls[i].prevTime = getUnixTime();
     }
 }
 
+void WdTimer::setUnixTime(MqttsPublish* msg){
+    _epochTime = millis();
+    _timerStopTimeAccum = 0;
+    _unixTime = getLong(msg->getData());
+}
+
+uint32_t WdTimer::getUnixTime(){
+    uint32_t tm = _timerStopTimeAccum + millis();
+    if (_epochTime > tm ){
+        return _unixTime + (uint32_t)((0xffffffff - tm - _epochTime) / 1000);
+    }else{
+        return _unixTime + (uint32_t)((tm - _epochTime) / 1000);
+    }
+}
+
+void WdTimer::setStopTimeDuration(uint32_t msec){
+	_timerStopTimeAccum += (uint16_t)msec;
+}
 
 #endif  /* ARDUINO */

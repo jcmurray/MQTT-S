@@ -58,14 +58,17 @@
 #define MQ_WDT_ERR   (B01100000)  // Error Indication time
 
 //#define MQ_WDT_TIME (B01000111)   // 2 Sec
+//#define MQ_WDT_TIME_MSEC   2000
+
 //#define MQ_WDT_TIME (B01100000)   // 4 Sec
+//#define MQ_WDT_TIME_MSEC   4000
  
 #define MQ_WDT_TIME (B01100001)   // 8 Sec
-
+#define MQ_WDT_TIME_MSEC   8000
 
 typedef struct {
-	long prevTime;
-	long interval;
+	uint32_t prevTime;
+	uint32_t interval;
 	int (*callback)(void);
 }MQ_TimerTbl;
 
@@ -77,16 +80,21 @@ enum MQ_INT_STATUS{ WAIT, INT0_LL, INT0_WAIT_HL, INT_WDT};
 class WdTimer {
 public:
 	WdTimer(void);
-	uint8_t registerCallback(long sec, int (*proc)(void));
+	uint8_t registerCallback(uint32_t sec, int (*proc)(void));
 	void refleshRegisterTable();
 	void start(void);
 	void stop(void);
 	bool wakeUp(void);
-	bool wakeUpSleep(void);
+	void setUnixTime(MqttsPublish* msg);
+	uint32_t getUnixTime();
+	void setStopTimeDuration(uint32_t msec);
 
 private:	
 	MQ_TimerTbl *_timerTbls;
 	uint8_t _timerCnt;
+	uint32_t _unixTime;
+	uint32_t _epochTime;
+	uint32_t _timerStopTimeAccum;
 };
 
 /*======================================
@@ -124,7 +132,7 @@ public:
 	void stopWdt();
 	int  exec();
 	void setUnixTime(MqttsPublish* msg);
-	long getUnixTime();
+	uint32_t getUnixTime();
 	void reboot();
 	void indicatorOn();
 	void indicatorOff();
@@ -139,8 +147,6 @@ private:
 	
 	MqttsClient _mqtts;
 	bool _txFlag;
-	long    _unixTime;
-	uint32_t _epochTime;
 	bool  _sleepFlg;
 	uint8_t _deviceType;
 
